@@ -150,7 +150,7 @@ static APP_STATUS_T dpm_process_command_writearea(APP_REQUEST_WRITEAREA_T *ptReq
 	{
 		/* Copy the data. */
 		tPtr.ul = ptRequest->ulAddress;
-		memcpy(ptRequest->aucData, tPtr.puc, ulLengthInBytes);
+		memcpy(tPtr.puc, ptRequest->aucData, ulLengthInBytes);
 		tStatus = APP_STATUS_Ok;
 	}
 
