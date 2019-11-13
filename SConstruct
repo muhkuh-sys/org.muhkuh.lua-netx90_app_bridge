@@ -89,15 +89,6 @@ sources_module_hispi = """
 # The list of include folders. Here it is used for all files.
 astrIncludePaths = ['src', '#platform/src', '#platform/src/lib', '#targets/version']
 
-# This is the demo for the COM side.
-tEnvCom = atEnv.NETX90.Clone()
-tEnvCom.Append(CPPPATH = astrIncludePaths)
-tEnvCom.Replace(LDFILE = 'src/com/netx90/netx90_com_intram.ld')
-tSrcCom = tEnvCom.SetBuildPath('targets/netx90_com', 'src', sources_com)
-tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'])
-tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com_demo.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
-BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com_demo.bin', tElfCom)
-
 # This is the bridge on the APP.
 tEnvApp = atEnv.NETX90_APP.Clone()
 tEnvApp.Append(CPPPATH = astrIncludePaths)
@@ -106,7 +97,17 @@ tSrcApp = tEnvApp.SetBuildPath('targets/netx90_app', 'src', sources_app)
 tElfApp = tEnvApp.Elf('targets/netx90_app/netx90_app_bridge.elf', tSrcApp + tEnvApp['PLATFORM_LIBRARY'])
 tTxtApp = tEnvApp.ObjDump('targets/netx90_app/netx90_app_bridge.txt', tElfApp, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
 tBinApp = tEnvApp.ObjCopy('targets/netx90_app/netx90_app_bridge.bin', tElfApp)
-tImgApp = tEnvApp.IFlashImage('targets/netx90_app_bridge.img', tBinApp)
+tImgApp = tEnvApp.IFlashImage('targets/netx90_app/netx90_app_bridge.img', tBinApp)
+
+# This is the demo for the COM side.
+tEnvCom = atEnv.NETX90.Clone()
+tEnvCom.Append(CPPPATH = astrIncludePaths)
+tEnvCom.Replace(LDFILE = 'src/com/netx90/netx90_com_intram.ld')
+tObjApp = tEnvCom.ObjImport('targets/netx90_app/netx90_app_bridge.obj', tImgApp)
+tSrcCom = tEnvCom.SetBuildPath('targets/netx90_com', 'src', sources_com)
+tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'] + tObjApp)
+tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com_demo.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com_demo.bin', tElfCom)
 
 # This is an extension module for the bridge providing HiSPI routines.
 tEnvModuleHispi = atEnv.NETX90_APP.Clone()
