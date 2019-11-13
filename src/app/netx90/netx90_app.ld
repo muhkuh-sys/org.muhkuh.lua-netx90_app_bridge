@@ -25,7 +25,8 @@ MEMORY
 	ASSERT_EMPTY(rwx)  : ORIGIN = 0x00000000, LENGTH = 0
 
 	IFLASH(rx)         : ORIGIN = 0x00000000, LENGTH = 0x00080000
-	INTRAM(rx)         : ORIGIN = 0x000B0000, LENGTH = 0x00010000
+	INTRAM(rx)         : ORIGIN = 0x000B0000, LENGTH = 0x00008000
+	DPM(rwx)           : ORIGIN = 0x70000000, LENGTH = 0x00008000
 }
 
 
@@ -56,7 +57,15 @@ SECTIONS
 
 		/* .rodata section which is used for read-only data (constants) */
 		*(.rodata*)
+
+		FILL(0xffffffff)
+		. = ALIGN(4);
 	} >IFLASH
+
+	.reserved ORIGIN(INTRAM) :
+	{
+		. = . + 0x8000;
+	} >INTRAM
 
 	.bss :
 	{
@@ -72,6 +81,11 @@ SECTIONS
 		PROVIDE ( stack_top = . );
 		PROVIDE ( __STACK_TOP_APP_CPU__ = . );
 	} >INTRAM
+
+	.dpm (NOLOAD) :
+	{
+		*(.dpm)
+	} >DPM
 
 
 	/* Stabs debugging sections.  */

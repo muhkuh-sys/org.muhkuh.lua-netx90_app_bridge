@@ -24,7 +24,8 @@ MEMORY
 {
 	ASSERT_EMPTY(rwx)  : ORIGIN = 0x00000000, LENGTH = 0
 
-	INTRAM(rx)         : ORIGIN = 0x000B0000, LENGTH = 0x00010000
+	INTRAM(rwx)        : ORIGIN = 0x000B0000, LENGTH = 0x00010000
+	DPM(rwx)           : ORIGIN = 0x70000000, LENGTH = 0x00008000
 }
 
 
@@ -53,6 +54,8 @@ SECTIONS
 
 		/* .rodata section which is used for read-only data (constants) */
 		*(.rodata*)
+
+		. = ALIGN(4);
 	} >INTRAM
 
 	.bss :
@@ -69,6 +72,11 @@ SECTIONS
 		PROVIDE ( stack_top = . );
 		PROVIDE ( __STACK_TOP_APP_CPU__ = . );
 	} >INTRAM
+
+	.dpm (NOLOAD) :
+	{
+		*(.dpm)
+	} >DPM
 
 
 	/* Stabs debugging sections.  */

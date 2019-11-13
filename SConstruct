@@ -58,18 +58,27 @@ atEnv.DEFAULT.Version('#targets/version/version.h', 'templates/version.h')
 # This is the list of sources. The elements must be separated with whitespace
 # (i.e. spaces, tabs, newlines). The amount of whitespace does not matter.
 sources_com = """
+	src/com/app_bridge.c
 	src/com/header.c
-	src/com/init.S
+	src/com/init_muhkuh.S
 	src/com/main.c
 """
 
 sources_app = """
 	src/app/app_hboot_header_iflash.c
 	src/app/cm4_app_vector_table_iflash.c
-	src/app/comled.c
 	src/app/header.c
 	src/app/init.S
 	src/app/main.c
+"""
+
+sources_module_hispi = """
+	src/modules/hispi/boot_drv_spi.c
+	src/modules/hispi/boot_spi.c
+	src/modules/hispi/crc.c
+	src/modules/hispi/init_module.S
+	src/modules/hispi/main_module.c
+	src/modules/hispi/pad_control.c
 """
 
 #----------------------------------------------------------------------------
@@ -80,18 +89,42 @@ sources_app = """
 # The list of include folders. Here it is used for all files.
 astrIncludePaths = ['src', '#platform/src', '#platform/src/lib', '#targets/version']
 
-# Blinki for the netX90 communication CPU.
+# This is the demo for the COM side.
 tEnvCom = atEnv.NETX90.Clone()
 tEnvCom.Append(CPPPATH = astrIncludePaths)
 tEnvCom.Replace(LDFILE = 'src/com/netx90/netx90_com_intram.ld')
 tSrcCom = tEnvCom.SetBuildPath('targets/netx90_com', 'src', sources_com)
 tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'])
 tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com_demo.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com_demo.bin', tElfCom)
 
-# Blinki for the netX90 application CPU.
+# This is the bridge on the APP.
 tEnvApp = atEnv.NETX90_APP.Clone()
 tEnvApp.Append(CPPPATH = astrIncludePaths)
-tEnvApp.Replace(LDFILE = 'src/app/netx90/netx90_app_intram.ld')
+tEnvApp.Replace(LDFILE = 'src/app/netx90/netx90_app.ld')
 tSrcApp = tEnvApp.SetBuildPath('targets/netx90_app', 'src', sources_app)
-tElfApp = tEnvApp.Elf('targets/netx90_app_bridge.elf', tSrcApp + tEnvApp['PLATFORM_LIBRARY'])
-tTxtApp = tEnvApp.ObjDump('targets/netx90_app_bridge.txt', tElfApp, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+tElfApp = tEnvApp.Elf('targets/netx90_app/netx90_app_bridge.elf', tSrcApp + tEnvApp['PLATFORM_LIBRARY'])
+tTxtApp = tEnvApp.ObjDump('targets/netx90_app/netx90_app_bridge.txt', tElfApp, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+tBinApp = tEnvApp.ObjCopy('targets/netx90_app/netx90_app_bridge.bin', tElfApp)
+tImgApp = tEnvApp.IFlashImage('targets/netx90_app_bridge.img', tBinApp)
+
+# This is an extension module for the bridge providing HiSPI routines.
+tEnvModuleHispi = atEnv.NETX90_APP.Clone()
+tEnvModuleHispi.Append(CPPPATH = astrIncludePaths)
+tEnvModuleHispi.Replace(LDFILE = 'src/modules/hispi/netx90/netx90_app_module.ld')
+tSrcModuleHispi = tEnvModuleHispi.SetBuildPath('targets/netx90_module_hispi', 'src', sources_module_hispi)
+tElfModuleHispi = tEnvModuleHispi.Elf('targets/netx90_module_hispi/netx90_module_hispi.elf', tSrcModuleHispi + tEnvModuleHispi['PLATFORM_LIBRARY'])
+tTxtModuleHispi = tEnvModuleHispi.ObjDump('targets/netx90_module_hispi/netx90_module_hispi.txt', tElfModuleHispi, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+tBinModuleHispi = tEnvModuleHispi.ObjCopy('targets/netx90_module_hispi/netx90_module_hispi.bin', tElfModuleHispi)
+
+BRIDGE_NETX90_LUA = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge.lua', tElfCom, GCCSYMBOLTEMPLATE_TEMPLATE=File('templates/app_bridge.lua'))
+
+# Install the files to the testbench.
+atFiles = {
+    'targets/testbench/netx/netx90_app_bridge_com_demo.bin':      BRIDGE_NETX90_COM,
+    'targets/testbench/lua/app_bridge.lua':                       BRIDGE_NETX90_LUA
+}
+for tDst, tSrc in atFiles.iteritems():
+    Command(tDst, tSrc, Copy("$TARGET", "$SOURCE"))
+
+

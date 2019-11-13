@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2016 by Christoph Thelen                                *
+ *   Copyright (C) 2019 by Christoph Thelen                                *
  *   doc_bacardi@users.sourceforge.net                                     *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -19,34 +19,23 @@
  ***************************************************************************/
 
 
-#ifndef __COMLED_H__
-#define __COMLED_H__
+#include "boot_spi.h"
 
-/*-----------------------------------*/
 
-typedef enum
+#ifndef __MAIN_MODULE_H__
+#define __MAIN_MODULE_H__
+
+
+typedef struct HISPI_PARAMETER_STRUCT
 {
-	COMLED_OFF    = 0,
-	COMLED_GREEN  = 1,
-	COMLED_RED    = 2
-} COMLED_T;
+	BOOT_SPI_CONFIGURATION_T tSpiConfiguration;
+	unsigned int uiUnit;
+	unsigned int uiChipSelect;
+} HISPI_PARAMETER_T;
 
 
-typedef struct
-{
-	unsigned int uiLedIndex;
-	unsigned long ulTimer;
-	unsigned int uiCnt;
-	unsigned long ulMask;
-	unsigned long ulState;
-} COMLED_BLINKI_HANDLE_T;
+unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, unsigned long ulParameter2, unsigned long ulParameter3);
 
 
-int comled_initialize(unsigned int uiLedIndex);
-int comled_setLEDs(unsigned int uiLedIndex, COMLED_T tState);
-int comled_blinki_init(COMLED_BLINKI_HANDLE_T *ptHandle, unsigned int uiLedIndex, unsigned long ulMask, unsigned long ulState);
-void comled_blinki(COMLED_BLINKI_HANDLE_T *ptHandle);
+#endif  /* __MAIN_MODULE_H__ */
 
-/*-----------------------------------*/
-
-#endif  /* __COMLED_H__ */

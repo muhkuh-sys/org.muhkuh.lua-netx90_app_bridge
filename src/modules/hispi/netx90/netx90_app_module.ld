@@ -22,11 +22,10 @@ ENTRY(start)
 
 MEMORY
 {
-	ASSERT_EMPTY(rwx): ORIGIN = 0x00000000, LENGTH = 0
+	ASSERT_EMPTY(rwx)  : ORIGIN = 0x00000000, LENGTH = 0
 
-	INTRAM(rwx):       ORIGIN = 0x00024000, LENGTH = 0x0001c000
-	IOVECTORS(rw):     ORIGIN = 0x2009FFF0, LENGTH = 0x00000010
-	DPM(rw):           ORIGIN = 0x200c0000, LENGTH = 0x00008000
+	INTRAM(rx)         : ORIGIN = 0x000B8000, LENGTH = 0x00008000
+	DPM(rwx)           : ORIGIN = 0x70000000, LENGTH = 0x00008000
 }
 
 
@@ -35,54 +34,30 @@ SECTIONS
 {
 	.assert_empty (NOLOAD) :
 	{
+		/* NOTE: include all sections here which should be empty. */
 		*(.data)
 		*(.glue*)
 		*(.vfp11_veneer)
 		*(.v4_bx)
-		*(.iplt)
-		*(.rel.dyn)
-		*(.rel.iplt)
-		*(.igot.plt)
 	} >ASSERT_EMPTY
 
-	.code ORIGIN(INTRAM):
-	{
-		load_address = . ;
-		KEEP(*(.header))
-		*(.init_code .text* .rodata*)
 
-		FILL(0xffffffff)
-		. = ALIGN(0x10);
+	.code ORIGIN(INTRAM) :
+	{
+		KEEP(*(.init_code))
+		*(.text*)
+
+		/* .rodata section which is used for read-only data (constants) */
+		*(.rodata*)
 	} >INTRAM
 
-	.parameter ALIGN(0x0100) :
+	.bss :
 	{
-		parameter_start_address = . ;
-		. = . + 0x4000;
-		parameter_end_address = . ;
+		PROVIDE ( __bss_start__ = . );
+		*(.bss)
+		*(COMMON)
+		PROVIDE ( __bss_end__ = . );
 	} >INTRAM
-
-	.bss ALIGN(0x10):
-	{
-		__bss_start__ = . ;
-		*(.bss COMMON)
-		__bss_end__ = . ;
-	} >INTRAM
-
-	.stack :
-	{
-		/* Reserve at least 4096 bytes. */
-		. = . + 0x1000;
-		. = ORIGIN(INTRAM) + LENGTH(INTRAM) ;
-		stack_top = . ;
-	} >INTRAM
-
-
-	.serialvectors ORIGIN(IOVECTORS) (NOLOAD) :
-	{
-		PROVIDE ( tSerialVectors = . );
-		. = . + 0x10;
-	} >IOVECTORS
 
 	.dpm (NOLOAD) :
 	{
@@ -99,9 +74,8 @@ SECTIONS
 	.stab.indexstr 0 : { *(.stab.indexstr) }
 	.comment       0 : { *(.comment) }
 	/* DWARF debug sections.
-	 * Symbols in the DWARF debugging sections are relative to the beginning
-	 * of the section so we begin them at 0.
-	 */
+	Symbols in the DWARF debugging sections are relative to the beginning
+	of the section so we begin them at 0.  */
 	/* DWARF 1 */
 	.debug          0 : { *(.debug) }
 	.line           0 : { *(.line) }
@@ -125,4 +99,3 @@ SECTIONS
 	.debug_typenames 0 : { *(.debug_typenames) }
 	.debug_varnames  0 : { *(.debug_varnames) }
 }
-

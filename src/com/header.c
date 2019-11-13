@@ -23,8 +23,22 @@
 #include "version.h"
 
 
+extern unsigned long load_address[];
+unsigned long start(unsigned long ulParameter);
+extern unsigned long parameter_start_address[];
+extern unsigned long parameter_end_address[];
+
+
 const VERSION_HEADER_T tVersionHeader =
 {
+	.acMagic = { 'm', 'o', 'o', 'h' },
+	.ulVersion = 0x00010001,
+
+	.pulLoadAddress = load_address,
+	.pfnExecutionAddress = start,
+	.pulParameterStart = parameter_start_address,
+	.pulParameterEnd = parameter_end_address,
+
 	.ulVersionMajor = VERSION_MAJOR,
 	.ulVersionMinor = VERSION_MINOR,
 	.ulVersionMicro = VERSION_MICRO,

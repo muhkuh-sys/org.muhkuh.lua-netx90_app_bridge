@@ -23,8 +23,18 @@
 #define __HEADER_H__
 
 
+typedef unsigned long (*PFN_START)(unsigned long ulParameter);
+
 typedef struct VERSION_HEADER_STRUCT
 {
+	char acMagic[4];
+	unsigned long ulVersion;
+
+	unsigned long *pulLoadAddress;
+	PFN_START pfnExecutionAddress;
+	unsigned long *pulParameterStart;
+	unsigned long *pulParameterEnd;
+
 	unsigned long ulVersionMajor;
 	unsigned long ulVersionMinor;
 	unsigned long ulVersionMicro;
