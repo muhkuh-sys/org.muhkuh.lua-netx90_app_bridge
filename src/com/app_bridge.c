@@ -231,6 +231,51 @@ int app_bridge_read_register(unsigned long ulAddress, unsigned long *pulValue)
 
 
 
+int app_bridge_read_area(unsigned long ulAddress, unsigned long ulLengthInBytes, unsigned char *pucData)
+{
+	int iResult;
+	unsigned long ulRequestId;
+	unsigned long ulTime;
+	int iElapsed;
+	APP_STATUS_T tStatus;
+
+
+	/* Be pessimistic. */
+	iResult = -1;
+
+	/* Prepare the request. */
+	tDpm.tRequest.tCommand = APP_COMMAND_ReadArea;
+	tDpm.tRequest.tStatus = APP_STATUS_Idle;
+	tDpm.tRequest.uData.tReadArea.ulAddress = ulAddress;
+	tDpm.tRequest.uData.tReadArea.ulLengthInBytes = ulLengthInBytes;
+
+	/* Start the request. */
+	ulRequestId = tDpm.ulRequestCount + 1U;
+	tDpm.ulRequestCount = ulRequestId;
+
+	/* Wait for a response. */
+	ulTime = systime_get_ms();
+	do
+	{
+		if( tDpm.ulResponseCount==ulRequestId )
+		{
+			/* Check the status of the response. */
+			tStatus = tDpm.tRequest.tStatus;
+			if( tStatus==APP_STATUS_Ok )
+			{
+				memcpy(pucData, tDpm.tRequest.uData.tReadArea.aucData, ulLengthInBytes);
+				iResult = 0;
+			}
+			break;
+		}
+		iElapsed = systime_elapsed(ulTime, 1000U);
+	} while( iElapsed==0 );
+
+	return iResult;
+}
+
+
+
 int app_bridge_write_register(unsigned long ulAddress, unsigned long ulValue)
 {
 	int iResult;
@@ -248,6 +293,50 @@ int app_bridge_write_register(unsigned long ulAddress, unsigned long ulValue)
 	tDpm.tRequest.tStatus = APP_STATUS_Idle;
 	tDpm.tRequest.uData.tWriteRegister32.ulRegister = ulAddress;
 	tDpm.tRequest.uData.tWriteRegister32.ulValue = ulValue;
+
+	/* Start the request. */
+	ulRequestId = tDpm.ulRequestCount + 1U;
+	tDpm.ulRequestCount = ulRequestId;
+
+	/* Wait for a response. */
+	ulTime = systime_get_ms();
+	do
+	{
+		if( tDpm.ulResponseCount==ulRequestId )
+		{
+			/* Check the status of the response. */
+			tStatus = tDpm.tRequest.tStatus;
+			if( tStatus==APP_STATUS_Ok )
+			{
+				iResult = 0;
+			}
+			break;
+		}
+		iElapsed = systime_elapsed(ulTime, 1000U);
+	} while( iElapsed==0 );
+
+	return iResult;
+}
+
+
+int app_bridge_write_area(unsigned long ulAddress, unsigned long ulLengthInBytes, const unsigned char *pucData)
+{
+	int iResult;
+	unsigned long ulRequestId;
+	unsigned long ulTime;
+	int iElapsed;
+	APP_STATUS_T tStatus;
+
+
+	/* Be pessimistic. */
+	iResult = -1;
+
+	/* Prepare the request. */
+	tDpm.tRequest.tCommand = APP_COMMAND_WriteArea;
+	tDpm.tRequest.tStatus = APP_STATUS_Idle;
+	tDpm.tRequest.uData.tWriteArea.ulAddress = ulAddress;
+	tDpm.tRequest.uData.tWriteArea.ulLengthInBytes = ulLengthInBytes;
+	memcpy(tDpm.tRequest.uData.tWriteArea.aucData, pucData, ulLengthInBytes);
 
 	/* Start the request. */
 	ulRequestId = tDpm.ulRequestCount + 1U;

@@ -66,7 +66,11 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 		case BRIDGE_COMMAND_ReadArea:
 			uprintf("ReadArea\n");
 
-			uprintf("Not yet.\n");
+			iResult = app_bridge_read_area(ptParameter->uData.tReadArea.ulAddress, ptParameter->uData.tReadArea.ulLengthInBytes, ptParameter->uData.tReadArea.aucData);
+			if( iResult==0 )
+			{
+				tResult = TEST_RESULT_OK;
+			}
 			break;
 
 		case BRIDGE_COMMAND_WriteRegister:
@@ -84,7 +88,11 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 		case BRIDGE_COMMAND_WriteArea:
 			uprintf("WriteArea\n");
 
-			uprintf("Not yet.\n");
+			iResult = app_bridge_write_area(ptParameter->uData.tWriteArea.ulAddress, ptParameter->uData.tWriteArea.ulLengthInBytes, ptParameter->uData.tWriteArea.aucData);
+			if( iResult==0 )
+			{
+				tResult = TEST_RESULT_OK;
+			}
 			break;
 
 		case BRIDGE_COMMAND_Call:
