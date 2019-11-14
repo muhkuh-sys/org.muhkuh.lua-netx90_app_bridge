@@ -728,43 +728,55 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 		 */
 		for(ucNodeAddress=0; ucNodeAddress<uiNumberOfDevices; ++ucNodeAddress)
 		{
-			/* PLL feedback divider  fvco/ffb = (d_fd + 2) * 2 */
-			ulValue  =   94U << SRT_NIOL_asic_ctrl_pll_config0_pll_fd;
-			ulValue |= 0x36U << SRT_NIOL_asic_ctrl_pll_config0_pw;
-			iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_pll_config0, (unsigned short)ulValue);
+			/* Is the PLL already running?
+			 * Do not configure it twice. This hurts.
+			 */
+			iResult = read_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_clk_sys_config, &usData);
 			if( iResult==0 )
 			{
-				ulValue  =    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_oe_n;
-				ulValue |=    1U << SRT_NIOL_asic_ctrl_pll_config1_pll_pd;
-				ulValue |=    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_rd;
-				ulValue |=    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_od;
-				ulValue |=    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_bypass;
-				ulValue |= 0x1aU << SRT_NIOL_asic_ctrl_pll_config1_pw;
-				iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_pll_config1, (unsigned short)ulValue);
-				if( iResult==0 )
+				ulValue  = (unsigned long)usData;
+				ulValue &= MSK_NIOL_asic_ctrl_clk_sys_config_src;
+				if( ulValue==0 )
 				{
-					ulValue &= ~(MSK_NIOL_asic_ctrl_pll_config1_pll_pd);
-					iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_pll_config1, (unsigned short)ulValue);
+					/* PLL feedback divider  fvco/ffb = (d_fd + 2) * 2 */
+					ulValue  =   94U << SRT_NIOL_asic_ctrl_pll_config0_pll_fd;
+					ulValue |= 0x36U << SRT_NIOL_asic_ctrl_pll_config0_pw;
+					iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_pll_config0, (unsigned short)ulValue);
 					if( iResult==0 )
 					{
-						/* Delay 20ms. */
-						systime_delay_ms(20);
-
-						/* Switch SYS CLK to PLL. */
-						ulValue  =     0U << SRT_NIOL_asic_ctrl_clk_sys_config_src;
-						ulValue |=     1U << SRT_NIOL_asic_ctrl_clk_sys_config_div;
-						ulValue |= 0x56cU << SRT_NIOL_asic_ctrl_clk_sys_config_pw;
-						iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_clk_sys_config, (unsigned short)ulValue);
+						ulValue  =    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_oe_n;
+						ulValue |=    1U << SRT_NIOL_asic_ctrl_pll_config1_pll_pd;
+						ulValue |=    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_rd;
+						ulValue |=    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_od;
+						ulValue |=    0U << SRT_NIOL_asic_ctrl_pll_config1_pll_bypass;
+						ulValue |= 0x1aU << SRT_NIOL_asic_ctrl_pll_config1_pw;
+						iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_pll_config1, (unsigned short)ulValue);
 						if( iResult==0 )
 						{
-							ulValue |=    1U << SRT_NIOL_asic_ctrl_clk_sys_config_src;
-							iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_clk_sys_config, (unsigned short)ulValue);
+							ulValue &= ~(MSK_NIOL_asic_ctrl_pll_config1_pll_pd);
+							iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_pll_config1, (unsigned short)ulValue);
 							if( iResult==0 )
 							{
-								/* Is this really necessary? */
-								ulValue  =   25U << SRT_NIOL_asic_ctrl_ofc_clk_bg_div_rld;
-								ulValue |=   25U << SRT_NIOL_asic_ctrl_ofc_clk_vref_div_rld;
-								iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_ofc_clk, (unsigned short)ulValue);
+								/* Delay 20ms. */
+								systime_delay_ms(20);
+
+								/* Switch SYS CLK to PLL. */
+								ulValue  =     0U << SRT_NIOL_asic_ctrl_clk_sys_config_src;
+								ulValue |=     1U << SRT_NIOL_asic_ctrl_clk_sys_config_div;
+								ulValue |= 0x56cU << SRT_NIOL_asic_ctrl_clk_sys_config_pw;
+								iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_clk_sys_config, (unsigned short)ulValue);
+								if( iResult==0 )
+								{
+									ulValue |=    1U << SRT_NIOL_asic_ctrl_clk_sys_config_src;
+									iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_clk_sys_config, (unsigned short)ulValue);
+									if( iResult==0 )
+									{
+										/* Is this really necessary? */
+										ulValue  =   25U << SRT_NIOL_asic_ctrl_ofc_clk_bg_div_rld;
+										ulValue |=   25U << SRT_NIOL_asic_ctrl_ofc_clk_vref_div_rld;
+										iResult = write_single(ptSpiCfg, ucNodeAddress, Adr_NIOL_asic_ctrl_ofc_clk, (unsigned short)ulValue);
+									}
+								}
 							}
 						}
 					}
