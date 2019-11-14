@@ -199,4 +199,41 @@ function AppBridge:write_area(ulAddress, strData)
 end
 
 
+function AppBridge:call(ulAddress, ulR0, ulR1, ulR2, ulR3)
+  ulR0 = ulR0 or 0
+  ulR1 = ulR1 or 0
+  ulR2 = ulR2 or 0
+  ulR3 = ulR3 or 0
+  local tResult
+
+
+  local aAttr = self.__aAttr
+  local tPlugin = self.__tPlugin
+  if aAttr==nil then
+    print('Not Initialized.')
+  elseif tPlugin==nil then
+    print('No plugin.')
+  else
+    -- Read a register.
+    local aParameter = {
+      self.BRIDGE_COMMAND_Call,
+      ulAddress,
+      ulR0,
+      ulR1,
+      ulR2,
+      ulR3,
+      'OUTPUT'
+    }
+    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    if ulValue~=0 then
+      print(string.format('Failed to read the register 0x%08x.', ulAddress))
+    else
+      tResult = aParameter[7]
+    end
+  end
+
+  return tResult
+end
+
 return AppBridge

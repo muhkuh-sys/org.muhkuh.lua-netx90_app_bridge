@@ -654,3 +654,42 @@ int app_bridge_write_area(unsigned long ulAddress, unsigned long ulLengthInBytes
 
 	return iResult;
 }
+
+
+
+int app_bridge_call(unsigned long ulAddress, unsigned long ulR0, unsigned long ulR1, unsigned long ulR2, unsigned long ulR3, unsigned long *pulResult)
+{
+	int iResult;
+	unsigned long ulRequestId;
+	APP_STATUS_T tStatus;
+
+
+	/* Be pessimistic. */
+	iResult = -1;
+
+	/* Prepare the request. */
+	tDpm.tRequest.tCommand = APP_COMMAND_Call;
+	tDpm.tRequest.tStatus = APP_STATUS_Idle;
+	tDpm.tRequest.uData.tCall.ulAddress = ulAddress;
+	tDpm.tRequest.uData.tCall.ulR0 = ulR0;
+	tDpm.tRequest.uData.tCall.ulR1 = ulR1;
+	tDpm.tRequest.uData.tCall.ulR2 = ulR2;
+	tDpm.tRequest.uData.tCall.ulR3 = ulR3;
+
+	/* Start the request. */
+	ulRequestId = tDpm.ulRequestCount + 1U;
+	tDpm.ulRequestCount = ulRequestId;
+
+	/* Wait for a response without timeout. */
+	while( tDpm.ulResponseCount!=ulRequestId ) {}
+
+	/* Check the status of the response. */
+	tStatus = tDpm.tRequest.tStatus;
+	if( tStatus==APP_STATUS_Ok )
+	{
+		*pulResult = tDpm.tRequest.uData.tCall.ulResult;
+		iResult = 0;
+	}
+
+	return iResult;
+}

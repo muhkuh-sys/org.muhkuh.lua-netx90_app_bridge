@@ -63,6 +63,16 @@ typedef struct APP_REQUEST_WRITEAREA_STRUCT
 } APP_REQUEST_WRITEAREA_T;
 
 
+
+typedef union APP_REQUEST_CALL_DATA_UNION
+{
+	unsigned char auc[16384];
+	unsigned short aus[16384 / sizeof(unsigned short)];
+	unsigned long aul[16384 / sizeof(unsigned long)];
+} APP_REQUEST_CALL_DATA_T;
+
+
+
 typedef struct APP_REQUEST_CALL_STRUCT
 {
 	unsigned long ulAddress;
@@ -71,7 +81,9 @@ typedef struct APP_REQUEST_CALL_STRUCT
 	unsigned long ulR2;
 	unsigned long ulR3;
 	unsigned long ulResult;
+	APP_REQUEST_CALL_DATA_T tData;
 } APP_REQUEST_CALL_T;
+
 
 
 typedef struct APP_REQUEST_STRUCT

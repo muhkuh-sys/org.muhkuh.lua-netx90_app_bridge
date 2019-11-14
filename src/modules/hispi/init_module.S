@@ -34,7 +34,7 @@ start:
 @ Only clear the .bss section if the command in r0 is "initialize" (0).
 @
 	cmp     r0, #0
-	beq     clear_bss_end
+	bne     clear_bss_end
 	mov     r4, #0
 	ldr     r5, =__bss_start__
 	ldr     r6, =__bss_end__

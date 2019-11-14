@@ -98,7 +98,12 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 		case BRIDGE_COMMAND_Call:
 			uprintf("Call\n");
 
-			uprintf("Not yet.\n");
+			iResult = app_bridge_call(ptParameter->uData.tCall.ulAddress, ptParameter->uData.tCall.ulR0, ptParameter->uData.tCall.ulR1, ptParameter->uData.tCall.ulR2, ptParameter->uData.tCall.ulR3, &ulValue);
+			if( iResult==0 )
+			{
+				ptParameter->uData.tCall.ulResult = ulValue;
+				tResult = TEST_RESULT_OK;
+			}
 			break;
 		}
 	}

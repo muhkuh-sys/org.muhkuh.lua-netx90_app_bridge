@@ -26,6 +26,25 @@
 #define __MAIN_MODULE_H__
 
 
+typedef enum HISPI_RESULT_ENUM
+{
+	HISPI_RESULT_Ok                         = 0,
+	HISPI_RESULT_UnknownCommand             = 1,
+	HISPI_RESULT_FailedToOpenSpi            = 2,
+	HISPI_RESULT_HiSpiAccessFailed          = 3,
+	HISPI_RESULT_UnknownBootCommand         = 4,
+	HISPI_RESULT_DeviceDidNotStopBooting    = 5
+} HISPI_RESULT_T;
+
+
+typedef enum HISPI_COMMAND_ENUM
+{
+	HISPI_COMMAND_Initialize                = 0,
+	HISPI_COMMAND_ReadRegister16            = 1,
+	HISPI_COMMAND_WriteRegister16           = 2
+} HISPI_COMMAND_T;
+
+
 typedef struct HISPI_PARAMETER_STRUCT
 {
 	BOOT_SPI_CONFIGURATION_T tSpiConfiguration;

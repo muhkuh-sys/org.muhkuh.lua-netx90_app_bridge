@@ -35,6 +35,20 @@
 
 /*-------------------------------------------------------------------------*/
 
+
+SPI_CFG_T s_tSpiCfg;
+
+
+typedef union PTR_UNION
+{
+	unsigned long ul;
+	unsigned char *puc;
+	unsigned short *pus;
+	unsigned long *pul;
+} PTR_T;
+
+/*-------------------------------------------------------------------------*/
+
 /* #define NETIOL_TEST_AREA Adr_NIOL_dram_base */
 /* This area is reserved by the ROM code. */
 #define NETIOL_TEST_AREA 0x6ff8
@@ -641,8 +655,9 @@ static int read_single_32(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsi
 
 
 
-static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMisoCfg, unsigned int uiNumberOfDevices)
+static unsigned long netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMisoCfg, unsigned int uiNumberOfDevices)
 {
+	unsigned long ulResult;
 	int iResult;
 	unsigned short usAddr;
 	unsigned short usData;
@@ -650,6 +665,9 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 	unsigned long ulValue;
 	unsigned int uiCnt;
 
+
+	/* Be optimistic. */
+	ulResult = HISPI_RESULT_Ok;
 
 	/* Run one dummy read to clean the shift registers. */
 	usAddr = 0x0000;
@@ -665,17 +683,19 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 	for(ucNodeAddress=0; ucNodeAddress<uiNumberOfDevices; ++ucNodeAddress)
 	{
 		iResult = read_single(ptSpiCfg, ucNodeAddress, usAddr, &usData);
-		if( iResult==0 && usData!=0x0123 && usData!=0x4567 )
-		{
-			iResult = -1;
-		}
 		if( iResult!=0 )
 		{
+			ulResult = HISPI_RESULT_HiSpiAccessFailed;
+			break;
+		}
+		else if( usData!=0x0123 && usData!=0x4567 )
+		{
+			ulResult = HISPI_RESULT_UnknownBootCommand;
 			break;
 		}
 	}
 
-	if( iResult==0 )
+	if( ulResult==HISPI_RESULT_Ok )
 	{
 		/* Stop the loader to enable ram access. */
 		for(ucNodeAddress=0; ucNodeAddress<uiNumberOfDevices; ++ucNodeAddress)
@@ -683,11 +703,12 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 			iResult = write_single(ptSpiCfg, ucNodeAddress, usAddr, 0x4567);
 			if( iResult!=0 )
 			{
+				ulResult = HISPI_RESULT_HiSpiAccessFailed;
 				break;
 			}
 		}
 
-		if( iResult==0 )
+		if( ulResult==HISPI_RESULT_Ok )
 		{
 			/* Wait for all devices to stop booting. */
 			for(ucNodeAddress=0; ucNodeAddress<uiNumberOfDevices; ++ucNodeAddress)
@@ -714,13 +735,14 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 
 				if( iResult!=0 )
 				{
+					ulResult = HISPI_RESULT_DeviceDidNotStopBooting;
 					break;
 				}
 			}
 		}
 	}
 
-	if( iResult==0 )
+	if( ulResult==HISPI_RESULT_Ok )
 	{
 		/* Activate the PLL.
 		 * Settings for 400MHz PLL clock and 100MHZ System clk (clk).
@@ -785,13 +807,15 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 
 			if( iResult!=0 )
 			{
+				ulResult = HISPI_RESULT_HiSpiAccessFailed;
 				break;
 			}
 		}
+
 	}
 
 	/* Set the last device to "early MISO". */
-	if( iResult==0 )
+	if( ulResult==HISPI_RESULT_Ok )
 	{
 		for(ucNodeAddress=0; ucNodeAddress<uiNumberOfDevices; ++ucNodeAddress)
 		{
@@ -800,52 +824,13 @@ static int netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMiso
 
 			if( iResult!=0 )
 			{
+				ulResult = HISPI_RESULT_HiSpiAccessFailed;
 				break;
 			}
 		}
 	}
 
-	if( iResult==0 )
-	{
-		/* All devices are present. */
-
-		/* Write a pattern to the test area. */
-		for(ucNodeAddress=0; ucNodeAddress<uiNumberOfDevices; ++ucNodeAddress)
-		{
-			for(uiCnt=0; uiCnt<4U; ++uiCnt)
-			{
-				usAddr = (unsigned short)(NETIOL_TEST_AREA + 2*uiCnt);
-				iResult = write_single(ptSpiCfg, ucNodeAddress, usAddr, ausTestPattern[uiCnt]);
-				if( iResult!=0 )
-				{
-					break;
-				}
-			}
-			if( iResult==0 )
-			{
-				for(uiCnt=0; uiCnt<4U; ++uiCnt)
-				{
-					usAddr = (unsigned short)(NETIOL_TEST_AREA + 2*uiCnt);
-					iResult = read_single(ptSpiCfg, ucNodeAddress, usAddr, &usData);
-					if( iResult==0 && usData!=ausTestPattern[uiCnt] )
-					{
-						iResult = -1;
-					}
-					if( iResult!=0 )
-					{
-						break;
-					}
-				}
-			}
-
-			if( iResult!=0 )
-			{
-				break;
-			}
-		}
-	}
-
-	return iResult;
+	return ulResult;
 }
 
 
@@ -854,19 +839,16 @@ static unsigned long hispi_initialize(const HISPI_PARAMETER_T *ptParameter, cons
 {
 	unsigned long ulResult;
 	int iResult;
-	SPI_CFG_T tSpiCfg;
 
 
-	ulResult = 1;
-
-	iResult = open_driver(ptParameter->uiUnit, ptParameter->uiChipSelect, &(ptParameter->tSpiConfiguration), &tSpiCfg);
-	if( iResult==0 )
+	iResult = open_driver(ptParameter->uiUnit, ptParameter->uiChipSelect, &(ptParameter->tSpiConfiguration), &s_tSpiCfg);
+	if( iResult!=0 )
 	{
-		iResult = netiol_device_init(&tSpiCfg, pusMisoCfg, uiNumberOfDevices);
-		if( iResult==0 )
-		{
-			ulResult = 0;
-		}
+		ulResult = HISPI_RESULT_FailedToOpenSpi;
+	}
+	else
+	{
+		ulResult = netiol_device_init(&s_tSpiCfg, pusMisoCfg, uiNumberOfDevices);
 	}
 
 	return ulResult;
@@ -976,14 +958,67 @@ static const unsigned short ausMisoCfg[4] =
 
 
 
+static unsigned long module_command_read16(unsigned long ulNodeAddress, unsigned long ulRegisterAddress, unsigned short *pusData)
+{
+	unsigned long ulResult;
+	int iResult;
+	unsigned char ucNodeAddress;
+	unsigned short usAddr;
+
+
+	ucNodeAddress = (unsigned char)(ulNodeAddress & 0xffU);
+	usAddr = (unsigned short)(ulRegisterAddress & 0xffffU);
+
+	iResult = read_single(&s_tSpiCfg, ucNodeAddress, usAddr, pusData);
+	if( iResult!=0 )
+	{
+		ulResult = HISPI_RESULT_HiSpiAccessFailed;
+	}
+	else
+	{
+		ulResult = HISPI_RESULT_Ok;
+	}
+
+	return ulResult;
+}
+
+
+
+static unsigned long module_command_write16(unsigned long ulNodeAddress, unsigned long ulRegisterAddress, unsigned short usData)
+{
+	unsigned long ulResult;
+	int iResult;
+	unsigned char ucNodeAddress;
+	unsigned short usAddr;
+
+
+	ucNodeAddress = (unsigned char)(ulNodeAddress & 0xffU);
+	usAddr = (unsigned short)(ulRegisterAddress & 0xffffU);
+
+	iResult = write_single(&s_tSpiCfg, ucNodeAddress, usAddr, usData);
+	if( iResult!=0 )
+	{
+		ulResult = HISPI_RESULT_HiSpiAccessFailed;
+	}
+	else
+	{
+		ulResult = HISPI_RESULT_Ok;
+	}
+
+	return ulResult;
+}
+
+
+
 unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, unsigned long ulParameter2, unsigned long ulParameter3)
 {
 	unsigned long ulResult;
+	PTR_T tPtr;
+	unsigned short usData;
 
 
-	if( ulParameter0==0 )
+	if( ulParameter0==HISPI_COMMAND_Initialize )
 	{
-#if 0
 		/* Initialize. */
 		mirror_test_pattern();
 		setup_nodeaddress_mirror_table();
@@ -991,23 +1026,26 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 		setup_padctrl();
 		netiol_setup_refclk();
 
+		/* Delay for 500ms. */
+		systime_delay_ms(500);
+
 		ulResult = hispi_initialize(&s_tParameter, ausMisoCfg, ulParameter1);
-#endif
-		ulResult = 0xfedcba98;
 	}
-	else if( ulParameter0==1 )
+	else if( ulParameter0==HISPI_COMMAND_ReadRegister16 )
 	{
-		/* Read 32 */
-		ulResult = 0x01234567;
+		/* Read 16 */
+		tPtr.ul = ulParameter3;
+		ulResult = module_command_read16(ulParameter1, ulParameter2, tPtr.pus);
 	}
-	else if( ulParameter0==2 )
+	else if( ulParameter0==HISPI_COMMAND_WriteRegister16 )
 	{
-		/* Write 32 */
-		ulResult = 0x89abcdef;
+		/* Write 16 */
+		usData = (unsigned short)(ulParameter3 & 0xffffU);
+		ulResult = module_command_write16(ulParameter1, ulParameter2, usData);
 	}
 	else
 	{
-		ulResult = 1;
+		ulResult = HISPI_RESULT_UnknownCommand;
 	}
 
 	return ulResult;

@@ -119,11 +119,14 @@ tTxtModuleHispi = tEnvModuleHispi.ObjDump('targets/netx90_module_hispi/netx90_mo
 tBinModuleHispi = tEnvModuleHispi.ObjCopy('targets/netx90_module_hispi/netx90_module_hispi.bin', tElfModuleHispi)
 
 BRIDGE_NETX90_LUA = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge.lua', tElfCom, GCCSYMBOLTEMPLATE_TEMPLATE=File('templates/app_bridge.lua'))
+BRIDGE_MODULE_HISPI = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge/modules/hispi.lua', tElfModuleHispi, GCCSYMBOLTEMPLATE_TEMPLATE=File('src/modules/hispi/templates/hispi.lua'))
 
 # Install the files to the testbench.
 atFiles = {
     'targets/testbench/netx/netx90_app_bridge_com_demo.bin':      BRIDGE_NETX90_COM,
-    'targets/testbench/lua/app_bridge.lua':                       BRIDGE_NETX90_LUA
+    'targets/testbench/lua/app_bridge.lua':                       BRIDGE_NETX90_LUA,
+    'targets/testbench/lua/app_bridge/modules/hispi.lua':         BRIDGE_MODULE_HISPI,
+    'targets/testbench/netx/netx90_module_hispi.bin':             tBinModuleHispi
 }
 for tDst, tSrc in atFiles.iteritems():
     Command(tDst, tSrc, Copy("$TARGET", "$SOURCE"))

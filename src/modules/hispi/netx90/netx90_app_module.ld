@@ -24,7 +24,8 @@ MEMORY
 {
 	ASSERT_EMPTY(rwx)  : ORIGIN = 0x00000000, LENGTH = 0
 
-	INTRAM(rx)         : ORIGIN = 0x000B8000, LENGTH = 0x00008000
+	CODE(rx)           : ORIGIN = 0x000B8000, LENGTH = 0x00004000
+	BUFFER(rx)         : ORIGIN = 0x000BC000, LENGTH = 0x00004000
 	DPM(rwx)           : ORIGIN = 0x70000000, LENGTH = 0x00008000
 }
 
@@ -42,24 +43,27 @@ SECTIONS
 	} >ASSERT_EMPTY
 
 
-	.code ORIGIN(INTRAM) :
+	.code ORIGIN(CODE) :
 	{
 		KEEP(*(.init_code))
-		*(.text*)
-
-		/* .rodata section which is used for read-only data (constants) */
-		*(.rodata*)
-	} >INTRAM
+		*(.text* .rodata*)
+	} >CODE
 
 	.bss :
 	{
 		PROVIDE ( __bss_start__ = . );
-		*(.bss)
-		*(COMMON)
+		*(.bss COMMON)
 		PROVIDE ( __bss_end__ = . );
-	} >INTRAM
+	} >CODE
 
-	.dpm (NOLOAD) :
+	.buffer ORIGIN(BUFFER) :
+	{
+		__buffer_start__ = . ;
+		. = ORIGIN(BUFFER) + LENGTH(BUFFER) ;
+		__buffer_end__ = . ;
+	} >BUFFER
+
+	.dpm ORIGIN(DPM) (NOLOAD) :
 	{
 		*(.dpm)
 	} >DPM
