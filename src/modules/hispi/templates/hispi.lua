@@ -38,7 +38,7 @@ function AppBridgeModuleHiSpi:initialize(ulNumberOfDevices)
   print('HiSPI initialize')
   local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.HISPI_COMMAND_Initialize, ulNumberOfDevices)
   if ulValue~=0 then
-    tLog.error('Failed to initialize the HiSPI: %d', ulValue)
+    tLog.error('Failed to initialize the HiSPI: %s', tostring(ulValue))
     error('Failed to initialize the HiSPI.')
   end
 end
