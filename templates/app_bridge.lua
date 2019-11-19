@@ -21,14 +21,14 @@ end
 function AppBridge:initialize()
   local tResult
   local tPlugin = self.__tPlugin
-  local aAttr = tester.mbin_open('netx/netx90_app_bridge_com_demo.bin', tPlugin)
-  tester.mbin_debug(aAttr)
-  tester.mbin_write(nil, tPlugin, aAttr)
+  local aAttr = tester:mbin_open('netx/netx90_app_bridge_com_demo.bin', tPlugin)
+  tester:mbin_debug(aAttr)
+  tester:mbin_write(tPlugin, aAttr)
 
   -- Initialize the application.
   local aParameter = 0
-  tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-  local ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+  tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+  local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
   if ulValue~=0 then
     print('Failed to initialize the bridge.')
   else
@@ -36,8 +36,8 @@ function AppBridge:initialize()
     local aParameter = {
       self.BRIDGE_COMMAND_Initialize
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print('Failed to initialize the bridge DPM.')
     else
@@ -65,8 +65,8 @@ function AppBridge:identify()
     local aParameter = {
       self.BRIDGE_COMMAND_Identify
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print('Failed to identify the bridge DPM.')
     else
@@ -95,8 +95,8 @@ function AppBridge:read_register(ulAddress)
       ulAddress,
       'OUTPUT'
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print(string.format('Failed to read the register 0x%08x.', ulAddress))
     else
@@ -125,8 +125,8 @@ function AppBridge:read_area(ulAddress, ulSizeInBytes)
       ulAddress,
       ulSizeInBytes
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print(string.format('Failed to read the area 0x%08x-0x%08x .', ulAddress, ulAddress+ulSizeInBytes))
     else
@@ -155,8 +155,8 @@ function AppBridge:write_register(ulAddress, ulData)
       ulAddress,
       ulData
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print(string.format('Failed to write the register 0x%08x.', ulAddress))
     else
@@ -216,9 +216,9 @@ function AppBridge:write_area(ulAddress, strData)
       ulAddress,
       sizData
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     tPlugin:write_image(aAttr.ulParameterStartAddress+0x18, strData, tester.callback_progress, sizData)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print(string.format('Failed to write the area 0x%08x-0x%08x .', ulAddress, ulAddress+sizData))
     else
@@ -255,8 +255,8 @@ function AppBridge:call(ulAddress, ulR0, ulR1, ulR2, ulR3)
       ulR3,
       'OUTPUT'
     }
-    tester.mbin_set_parameter(tPlugin, aAttr, aParameter)
-    ulValue = tester.mbin_execute(nil, tPlugin, aAttr, aParameter)
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
       print(string.format('Failed to read the register 0x%08x.', ulAddress))
     else
