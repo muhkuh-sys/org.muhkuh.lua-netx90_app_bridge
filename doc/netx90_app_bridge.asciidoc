@@ -1,0 +1,112 @@
+The netX90 system on chip (SOC) has several CPUs. The 2 main cores are ARM Cortex M4 CPUs. One is for the communication software (COM) and the other for the user application (APP). The periphery is divided between the CPUs so that one CPU can not access the periphery of the other one. Furthermore the boot-up sequence of APP CPU can not be controlled. The COM CPU can only activate the clock of the APP CPU which starts from the internal flash.
+
+For a production test this is a major pain.
+
+This module provides a dirty workaround to access the APP periphery from the COM side.
+It writes a bridge code to the internal flash, then starts the APP CPU. From now on the COM CPU can communicate over an internal DPM with the APP CPU.
+
+The solution is dirty because it requires code in the flash. If there was a firmware in the flash, it is destroyed. 
+
+
+Demo sources
+
+
+Read / write APP register:
+---------------------------------------------------------------------------------
+require 'muhkuh_cli_init'
+
+-- Create a log target.
+local tLogWriter = require 'log.writer.console.color'.new()
+local tLog = require "log".new(
+  -- maximum log level
+  'debug',
+  tLogWriter,
+  -- Formatter
+  require "log.formatter.format".new()
+)
+
+-- Open the plugin.
+local tPlugin = tester.getCommonPlugin()
+if tPlugin==nil then
+  error("No plugin selected, nothing to do!")
+end
+
+-- Initialize the APP bridge.
+tAppBridge:initialize()
+
+-- Read the APP register "i2c_app_i2c_cmd". This should be 0x0000000e .
+local ulValue = tAppBridge:read_register(0xff801088) -- i2c_app_i2c_cmd
+print(string.format("Result: 0x%08x", ulValue))
+
+-- Read the APP register "i2c_app_i2c_sr". This should be 0x00110040 .
+local ulValue = tAppBridge:read_register(0xff80109c) -- i2c_app_i2c_sr
+print(string.format("Result: 0x%08x", ulValue))
+
+-- Write two values with 32 bit each to APP RAM at 0x000B8000 and following.
+tAppBridge:write_register(0x000B8000, 0x01234567)
+tAppBridge:write_register(0x000B8004, 0x89abcdef)
+-- Read back the values in 32 bit steps.
+local ulValue = tAppBridge:read_register(0x000B8000)
+print(string.format("0x000B8000: 0x%08x", ulValue))
+local ulValue = tAppBridge:read_register(0x000B8004)
+print(string.format("0x000B8004: 0x%08x", ulValue))
+
+-- Write an area of 8 bytes to the APP RAM at 0x000B8000.
+local strData1 = string.char(0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88)
+tAppBridge:write_area(0x000B8000, strData1)
+-- Read back the area in one go.
+local strData2 = tAppBridge:read_area(0x000B8000, 8)
+tester.hexdump(strData2)
+---------------------------------------------------------------------------------
+
+
+netIOL register read/write:
+
+---------------------------------------------------------------------------------
+require 'muhkuh_cli_init'
+
+-- Create a log target.
+local tLogWriter = require 'log.writer.console.color'.new()
+local tLog = require "log".new(
+  -- maximum log level
+  'debug',
+  tLogWriter,
+  -- Formatter
+  require "log.formatter.format".new()
+)
+
+-- Open the plugin.
+local tPlugin = tester.getCommonPlugin()
+if tPlugin==nil then
+  error("No plugin selected, nothing to do!")
+end
+
+-- Initialize the APP bridge.
+tAppBridge:initialize()
+
+-- Initialize the HiSPI module for the APP bridge.
+-- Require 2 netIOLs in the SPI chain.
+tHiSpi = require 'app_bridge.modules.hispi'(tAppBridge, tLog)
+tHiSpi:initialize(2)
+
+-- Read some netIOL register. The LED matrix registers have non 0 reset values.
+local ulValue = tHiSpi:readRegister16(0, 0x0280)
+print(string.format("netIOL0[0x0280] = 0x%04x", ulValue))
+local ulValue = tHiSpi:readRegister16(0, 0x02cc)
+print(string.format("netIOL0[0x02cc] = 0x%04x", ulValue))
+
+-- Write 2 netIOL RAM elements with 16 bits each.
+tHiSpi:writeRegister16(0, 0x4000, 0x0123)
+tHiSpi:writeRegister16(0, 0x4002, 0x4567)
+-- Read back the values in steps of 16 bits.
+local ulValue = tHiSpi:readRegister16(0, 0x4000)
+print(string.format("netIOL0[0x4000] = 0x%04x", ulValue))
+local ulValue = tHiSpi:readRegister16(0, 0x4002)
+print(string.format("netIOL0[0x4002] = 0x%04x", ulValue))
+---------------------------------------------------------------------------------
+
+
+
+
+
+
