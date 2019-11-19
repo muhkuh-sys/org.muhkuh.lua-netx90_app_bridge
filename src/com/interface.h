@@ -4,13 +4,14 @@
 
 typedef enum BRIDGE_COMMAND_ENUM
 {
-	BRIDGE_COMMAND_Initialize    = 0,
-	BRIDGE_COMMAND_Identify      = 1,
-	BRIDGE_COMMAND_ReadRegister  = 2,
-	BRIDGE_COMMAND_ReadArea      = 3,
-	BRIDGE_COMMAND_WriteRegister = 4,
-	BRIDGE_COMMAND_WriteArea     = 5,
-	BRIDGE_COMMAND_Call          = 6
+	BRIDGE_COMMAND_Initialize          = 0,
+	BRIDGE_COMMAND_Identify            = 1,
+	BRIDGE_COMMAND_ReadRegister        = 2,
+	BRIDGE_COMMAND_ReadArea            = 3,
+	BRIDGE_COMMAND_WriteRegister       = 4,
+	BRIDGE_COMMAND_WriteRegisterUnlock = 5,
+	BRIDGE_COMMAND_WriteArea           = 6,
+	BRIDGE_COMMAND_Call                = 7
 } BRIDGE_COMMAND_T;
 
 
@@ -46,6 +47,13 @@ typedef struct BRIDGE_COMMAND_WRITEREGISTER_STRUCT
 } BRIDGE_COMMAND_WRITEREGISTER_T;
 
 
+typedef struct BRIDGE_COMMAND_WRITEREGISTERUNLOCK_STRUCT
+{
+	unsigned long ulRegister;
+	unsigned long ulValue;
+} BRIDGE_COMMAND_WRITEREGISTERUNLOCK_T;
+
+
 typedef struct BRIDGE_COMMAND_WRITEAREA_STRUCT
 {
 	unsigned long ulAddress;
@@ -74,6 +82,7 @@ typedef struct BRIDGE_PARAMETER_STRUCT
 		BRIDGE_COMMAND_READREGISTER_T tReadRegister;
 		BRIDGE_COMMAND_READAREA_T tReadArea;
 		BRIDGE_COMMAND_WRITEREGISTER_T tWriteRegister;
+		BRIDGE_COMMAND_WRITEREGISTERUNLOCK_T tWriteRegisterUnlock;
 		BRIDGE_COMMAND_WRITEAREA_T tWriteArea;
 		BRIDGE_COMMAND_CALL_T tCall;
 	} uData;

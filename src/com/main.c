@@ -79,8 +79,16 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 			iResult = app_bridge_write_register(ptParameter->uData.tWriteRegister.ulRegister, ptParameter->uData.tWriteRegister.ulValue);
 			if( iResult==0 )
 			{
-				ptParameter->uData.tReadRegister.ulValue = ulValue;
-				uprintf("read 0x%08x\n", ulValue);
+				tResult = TEST_RESULT_OK;
+			}
+			break;
+
+		case BRIDGE_COMMAND_WriteRegisterUnlock:
+			uprintf("WriteRegisterUnlock\n");
+
+			iResult = app_bridge_write_register_unlock(ptParameter->uData.tWriteRegisterUnlock.ulRegister, ptParameter->uData.tWriteRegisterUnlock.ulValue);
+			if( iResult==0 )
+			{
 				tResult = TEST_RESULT_OK;
 			}
 			break;

@@ -8,6 +8,7 @@ function AppBridge:_init(tPlugin)
   self.BRIDGE_COMMAND_ReadRegister = ${BRIDGE_COMMAND_ReadRegister}
   self.BRIDGE_COMMAND_ReadArea = ${BRIDGE_COMMAND_ReadArea}
   self.BRIDGE_COMMAND_WriteRegister = ${BRIDGE_COMMAND_WriteRegister}
+  self.BRIDGE_COMMAND_WriteRegisterUnlock = ${BRIDGE_COMMAND_WriteRegisterUnlock}
   self.BRIDGE_COMMAND_WriteArea = ${BRIDGE_COMMAND_WriteArea}
   self.BRIDGE_COMMAND_Call = ${BRIDGE_COMMAND_Call}
 
@@ -159,7 +160,37 @@ function AppBridge:write_register(ulAddress, ulData)
     if ulValue~=0 then
       print(string.format('Failed to write the register 0x%08x.', ulAddress))
     else
-      tResult = aParameter[3]
+      tResult = true
+    end
+  end
+
+  return tResult
+end
+
+
+function AppBridge:write_register_unlock(ulAddress, ulData)
+  local tResult
+
+
+  local aAttr = self.__aAttr
+  local tPlugin = self.__tPlugin
+  if aAttr==nil then
+    print('Not Initialized.')
+  elseif tPlugin==nil then
+    print('No plugin.')
+  else
+    -- Read a register.
+    local aParameter = {
+      self.BRIDGE_COMMAND_WriteRegisterUnlock,
+      ulAddress,
+      ulData
+    }
+    tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
+    ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
+    if ulValue~=0 then
+      print(string.format('Failed to write_unlock the register 0x%08x.', ulAddress))
+    else
+      tResult = true
     end
   end
 

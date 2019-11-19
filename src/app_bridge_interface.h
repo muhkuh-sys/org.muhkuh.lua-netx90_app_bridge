@@ -3,12 +3,13 @@
 
 typedef enum APP_COMMAND_ENUM
 {
-	APP_COMMAND_Identify        = 0,
-	APP_COMMAND_ReadRegister32  = 1,
-	APP_COMMAND_ReadArea        = 2,
-	APP_COMMAND_WriteRegister32 = 3,
-	APP_COMMAND_WriteArea       = 4,
-	APP_COMMAND_Call            = 5
+	APP_COMMAND_Identify              = 0,
+	APP_COMMAND_ReadRegister32        = 1,
+	APP_COMMAND_ReadArea              = 2,
+	APP_COMMAND_WriteRegister32       = 3,
+	APP_COMMAND_WriteRegister32Unlock = 4,
+	APP_COMMAND_WriteArea             = 5,
+	APP_COMMAND_Call                  = 6
 } APP_COMMAND_T;
 
 
@@ -55,6 +56,13 @@ typedef struct APP_REQUEST_WRITEREGISTER32_STRUCT
 } APP_REQUEST_WRITEREGISTER32_T;
 
 
+typedef struct APP_REQUEST_WRITEREGISTER32UNLOCK_STRUCT
+{
+	unsigned long ulRegister;
+	unsigned long ulValue;
+} APP_REQUEST_WRITEREGISTER32UNLOCK_T;
+
+
 typedef struct APP_REQUEST_WRITEAREA_STRUCT
 {
 	unsigned long ulAddress;
@@ -96,6 +104,7 @@ typedef struct APP_REQUEST_STRUCT
 		APP_REQUEST_READREGISTER32_T tReadRegister32;
 		APP_REQUEST_READAREA_T tReadArea;
 		APP_REQUEST_WRITEREGISTER32_T tWriteRegister32;
+		APP_REQUEST_WRITEREGISTER32UNLOCK_T tWriteRegister32Unlock;
 		APP_REQUEST_WRITEAREA_T tWriteArea;
 		APP_REQUEST_CALL_T tCall;
 	} uData;

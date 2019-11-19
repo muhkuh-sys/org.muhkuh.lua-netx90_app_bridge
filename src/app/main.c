@@ -133,6 +133,34 @@ static APP_STATUS_T dpm_process_command_writeregister32(APP_REQUEST_WRITEREGISTE
 }
 
 
+
+static APP_STATUS_T dpm_process_command_writeregister32unlock(APP_REQUEST_WRITEREGISTER32UNLOCK_T *ptRequest)
+{
+	HOSTDEF(ptAsicCtrlArea);
+	APP_STATUS_T tStatus;
+	VPTR_T tPtr;
+
+
+	tPtr.ul = ptRequest->ulRegister;
+
+	/* Refuse to writes an unaligned address. */
+	if( (tPtr.ul&3U)!=0 )
+	{
+		tStatus = APP_STATUS_UnalignedAddress;
+	}
+	else
+	{
+		ptAsicCtrlArea->ulAsic_ctrl_access_key = ptAsicCtrlArea->ulAsic_ctrl_access_key;  /* @suppress("Assignment to itself") */
+		*(tPtr.pul) = ptRequest->ulValue;
+		tStatus = APP_STATUS_Ok;
+	}
+
+	return tStatus;
+
+}
+
+
+
 static APP_STATUS_T dpm_process_command_writearea(APP_REQUEST_WRITEAREA_T *ptRequest)
 {
 	APP_STATUS_T tStatus;
@@ -219,6 +247,7 @@ static void dpm_request_poll(void)
 		case APP_COMMAND_ReadRegister32:
 		case APP_COMMAND_ReadArea:
 		case APP_COMMAND_WriteRegister32:
+		case APP_COMMAND_WriteRegister32Unlock:
 		case APP_COMMAND_WriteArea:
 		case APP_COMMAND_Call:
 			tStatus = APP_STATUS_Ok;
@@ -242,6 +271,10 @@ static void dpm_request_poll(void)
 
 			case APP_COMMAND_WriteRegister32:
 				tStatus = dpm_process_command_writeregister32(&(tDpm.tRequest.uData.tWriteRegister32));
+				break;
+
+			case APP_COMMAND_WriteRegister32Unlock:
+				tStatus = dpm_process_command_writeregister32unlock(&(tDpm.tRequest.uData.tWriteRegister32Unlock));
 				break;
 
 			case APP_COMMAND_WriteArea:
