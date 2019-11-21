@@ -392,68 +392,75 @@ APP_BRIDGE_RESULT_T app_bridge_init(void)
 	APP_BRIDGE_RESULT_T tResult;
 
 
-	/* Can the DPM clock be activated? */
-	ulValue  = ptAsicCtrlArea->asClock_enable[0].ulMask;
-	ulValue &= HOSTMSK(clock_enable0_mask_dpm);
-	if( ulValue==0 )
+	/* The DPM must start at the beginning of INTRAMHS. */
+	ulValue = (unsigned long)(&tDpm);
+	if( ulValue!=HOSTADDR(intramhs_mirror_sram) )
 	{
-		tResult = APP_BRIDGE_RESULT_DpmClocksMaskedOut;
+		tResult = APP_BRIDGE_RESULT_InvalidDpmAddress;
 	}
 	else
 	{
-		/* Activate the DPM clock. */
-		ulValue  = ptAsicCtrlArea->asClock_enable[0].ulEnable;
-		ulValue |= HOSTMSK(clock_enable0_dpm);
-		ulValue |= HOSTMSK(clock_enable0_dpm_wm);
+		/* Can the DPM clock be activated? */
+		ulValue  = ptAsicCtrlArea->asClock_enable[0].ulMask;
+		ulValue &= HOSTMSK(clock_enable0_mask_dpm);
+		if( ulValue==0 )
+		{
+			tResult = APP_BRIDGE_RESULT_DpmClocksMaskedOut;
+		}
+		else
+		{
+			/* Activate the DPM clock. */
+			ulValue  = ptAsicCtrlArea->asClock_enable[0].ulEnable;
+			ulValue |= HOSTMSK(clock_enable0_dpm);
+			ulValue |= HOSTMSK(clock_enable0_dpm_wm);
 
-		ptAsicCtrlArea->ulAsic_ctrl_access_key = ptAsicCtrlArea->ulAsic_ctrl_access_key;  /* @suppress("Assignment to itself") */
-		ptAsicCtrlArea->asClock_enable[0].ulEnable = ulValue;
+			ptAsicCtrlArea->ulAsic_ctrl_access_key = ptAsicCtrlArea->ulAsic_ctrl_access_key;  /* @suppress("Assignment to itself") */
+			ptAsicCtrlArea->asClock_enable[0].ulEnable = ulValue;
 
-		/* Disable the DPM for new configuration. */
-		idpm0_deinit_registers();
+			/* Disable the DPM for new configuration. */
+			idpm0_deinit_registers();
 
-		/* DPM mapping:
-		 * 0x0000 - 0x7fff : intramhs_mirror_sram
-		 */
-	        ulValue  = (HOSTADDR(intramhs_mirror_sram)) & HOSTMSK(idpm_win1_map_win_map);
-		ptIdpmComArea->ulIdpm_win1_end = 0x00008000;
-		ptIdpmComArea->ulIdpm_win1_map = ulValue;
-		ptIdpmComArea->ulIdpm_win2_end = 0;
-		ptIdpmComArea->ulIdpm_win2_map = 0;
-		ptIdpmComArea->ulIdpm_win3_end = 0;
-		ptIdpmComArea->ulIdpm_win3_map = 0;
-		ptIdpmComArea->ulIdpm_win4_end = 0;
-		ptIdpmComArea->ulIdpm_win4_map = 0;
+			/* DPM mapping:
+			 * 0x0000 - 0x7fff : intramhs_mirror_sram
+			 */
+			ulValue  = (HOSTADDR(intramhs_mirror_sram)) & HOSTMSK(idpm_win1_map_win_map);
+			ptIdpmComArea->ulIdpm_win1_end = 0x00008000;
+			ptIdpmComArea->ulIdpm_win1_map = ulValue;
+			ptIdpmComArea->ulIdpm_win2_end = 0;
+			ptIdpmComArea->ulIdpm_win2_map = 0;
+			ptIdpmComArea->ulIdpm_win3_end = 0;
+			ptIdpmComArea->ulIdpm_win3_map = 0;
+			ptIdpmComArea->ulIdpm_win4_end = 0;
+			ptIdpmComArea->ulIdpm_win4_map = 0;
 
-		ptIdpmComArea->ulIdpm_tunnel_cfg = HOSTMSK(idpm_tunnel_cfg_wp_data);
-		ptIdpmComArea->ulIdpm_itbaddr = 0;
+			ptIdpmComArea->ulIdpm_tunnel_cfg = HOSTMSK(idpm_tunnel_cfg_wp_data);
+			ptIdpmComArea->ulIdpm_itbaddr = 0;
 
-		ptIdpmComArea->ulIdpm_addr_cfg = 3U << HOSTSRT(idpm_addr_cfg_cfg_win_addr_cfg);
+			ptIdpmComArea->ulIdpm_addr_cfg = 3U << HOSTSRT(idpm_addr_cfg_cfg_win_addr_cfg);
 
-		/*
-		 * setup the netX parameter area
-		 */
-		memcpy(tDpm.aucMagic, aucDpmMagic, sizeof(tDpm.aucMagic));
-		tDpm.ulRequestCount = 0;
-		tDpm.ulResponseCount = 0;
+			/*
+			 * setup the netX parameter area
+			 */
+			memcpy(tDpm.aucMagic, aucDpmMagic, sizeof(tDpm.aucMagic));
+			tDpm.ulRequestCount = 0;
+			tDpm.ulResponseCount = 0;
 
+			/* Configure the firmware IRQ. */
+			ptIdpmComArea->ulIdpm_firmware_irq_mask = 0;
 
-		/* Configure the firmware IRQ. */
-		ptIdpmComArea->ulIdpm_firmware_irq_mask = 0;
+			/* Enable the DPM.
+			 * Enable the configuration window at offset 0.
+			 */
+			ulValue  = 0U << HOSTSRT(idpm_cfg0x0_endian);
+			ulValue |= HOSTMSK(idpm_cfg0x0_enable);
+			ptIdpmComArea->ulIdpm_cfg0x0 = ulValue;
 
+			/* Unlock the DPM. */
+			ptAsicCtrlComArea->ulNetx_lock = HOSTMSK(netx_lock_unlock_dpm);
 
-		/* Enable the DPM.
-		 * Enable the configuration window at offset 0.
-		 */
-		ulValue  = 0U << HOSTSRT(idpm_cfg0x0_endian);
-		ulValue |= HOSTMSK(idpm_cfg0x0_enable);
-		ptIdpmComArea->ulIdpm_cfg0x0 = ulValue;
-
-		/* Unlock the DPM. */
-		ptAsicCtrlComArea->ulNetx_lock = HOSTMSK(netx_lock_unlock_dpm);
-
-		/* Start the APP CPU. */
-		tResult = app_start();
+			/* Start the APP CPU. */
+			tResult = app_start();
+		}
 	}
 
 	return tResult;

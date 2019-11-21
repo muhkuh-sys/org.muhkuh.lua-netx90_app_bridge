@@ -5,19 +5,20 @@
 typedef enum APP_BRIDGE_RESULT_ENUM
 {
 	APP_BRIDGE_RESULT_Ok                                     = 0,
-	APP_BRIDGE_RESULT_DpmClocksMaskedOut                     = 1,
-	APP_BRIDGE_RESULT_AppClocksMaskedOut                     = 2,
-	APP_BRIDGE_RESULT_AppFirmwareExceedsFirstSector          = 3,
-	APP_BRIDGE_RESULT_AppFirmwareUpdateNeededWhileAppRunning = 4,
-	APP_BRIDGE_RESULT_AppFirmwareUpdateFlashFailed           = 5,
-	APP_BRIDGE_RESULT_TransferTimeout                        = 6,
+	APP_BRIDGE_RESULT_InvalidDpmAddress                      = 1,
+	APP_BRIDGE_RESULT_DpmClocksMaskedOut                     = 2,
+	APP_BRIDGE_RESULT_AppClocksMaskedOut                     = 3,
+	APP_BRIDGE_RESULT_AppFirmwareExceedsFirstSector          = 4,
+	APP_BRIDGE_RESULT_AppFirmwareUpdateNeededWhileAppRunning = 5,
+	APP_BRIDGE_RESULT_AppFirmwareUpdateFlashFailed           = 6,
+	APP_BRIDGE_RESULT_TransferTimeout                        = 7,
 
-	APP_BRIDGE_RESULT_AppStatusInvalidCommand                = 7,
-	APP_BRIDGE_RESULT_AppStatusUnalignedAddress              = 8,
-	APP_BRIDGE_RESULT_AppStatusLengthTooLarge                = 9,
-	APP_BRIDGE_RESULT_AppStatusCallRunning                   = 10,
-	APP_BRIDGE_RESULT_AppStatusIdle                          = 11,
-	APP_BRIDGE_RESULT_AppStatusUnknown                       = 12
+	APP_BRIDGE_RESULT_AppStatusInvalidCommand                = 8,
+	APP_BRIDGE_RESULT_AppStatusUnalignedAddress              = 9,
+	APP_BRIDGE_RESULT_AppStatusLengthTooLarge                = 10,
+	APP_BRIDGE_RESULT_AppStatusCallRunning                   = 11,
+	APP_BRIDGE_RESULT_AppStatusIdle                          = 12,
+	APP_BRIDGE_RESULT_AppStatusUnknown                       = 13
 } APP_BRIDGE_RESULT_T;
 
 
