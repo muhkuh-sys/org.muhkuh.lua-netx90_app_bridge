@@ -5,7 +5,6 @@
 #include "../app_bridge_interface.h"
 #include "netx_io_areas.h"
 #include "systime.h"
-#include "uprintf.h"
 
 
 static APP_BRIDGE_DPM_T tDpm __attribute__ ((section (".dpm")));
@@ -208,12 +207,6 @@ static int flash_programIntflash2Block0(const unsigned char *pucData, unsigned i
 		iCmpResult = memcmp(tVerifyBuffer.aul, tWriteBuffer.aul, IFLASH_MAZ_V0_PAGE_SIZE_BYTES);
 		if( iCmpResult!=0 )
 		{
-			uprintf("! Verify error at offset 0x%08x.\n", ulOffsetInBytes);
-			uprintf("Expected data:\n");
-			hexdump(tWriteBuffer.auc, IFLASH_MAZ_V0_PAGE_SIZE_BYTES);
-			uprintf("Flash contents:\n");
-			hexdump(tVerifyBuffer.auc, IFLASH_MAZ_V0_PAGE_SIZE_BYTES);
-
 			iResult = -1;
 			break;
 		}
@@ -250,10 +243,11 @@ static int flash_intflash2(const unsigned char *pucData, unsigned int sizData)
 
 
 
-static int app_start(void)
+static APP_BRIDGE_RESULT_T app_start(void)
 {
 	HOSTDEF(ptAsicCtrlArea);
 	unsigned long ulValue;
+	APP_BRIDGE_RESULT_T tResult;
 	int iResult;
 	int iCmp;
 	const unsigned char *pucFlashData = (const unsigned char*)HOSTADDR(intflash2);
@@ -265,37 +259,30 @@ static int app_start(void)
 	ulValue &= HOSTMSK(clock_enable0_mask_arm_app);
 	if( ulValue==0 )
 	{
-		uprintf("The APP clock can not be activated.");
-		iResult = -1;
+		tResult = APP_BRIDGE_RESULT_AppClocksMaskedOut;
 	}
 	else
 	{
 		/* Now be a bit more optimistic. */
-		iResult = 0;
+		tResult = APP_BRIDGE_RESULT_Ok;
 
 		/* Is the APP side up to date? */
 		sizFlashImage = (unsigned int)(_binary_netx90_app_bridge_img_end - _binary_netx90_app_bridge_img_start);
 		if( sizFlashImage>IFLASH_MAZ_V0_ERASE_BLOCK_SIZE_IN_BYTES )
 		{
-			uprintf("The size of the APP firmware exceeds the first block.\n");
-			iResult = -1;
+			tResult = APP_BRIDGE_RESULT_AppFirmwareExceedsFirstSector;
 		}
 		else
 		{
 			iCmp = memcmp(pucFlashData, _binary_netx90_app_bridge_img_start, sizFlashImage);
 			if( iCmp!=0 )
 			{
-				uprintf("The APP firmware must be written to flash.\n");
-
 				/* Is the APP clock already running? */
 				ulValue  = ptAsicCtrlArea->asClock_enable[0].ulEnable;
 				ulValue &= HOSTMSK(clock_enable0_arm_app);
 				if( ulValue!=0 )
 				{
-					uprintf("The APP firmware must be updated but the APP CPU is already running.\n");
-					uprintf("This is extremely unsafe.\n");
-
-					iResult = -1;
+					tResult = APP_BRIDGE_RESULT_AppFirmwareUpdateNeededWhileAppRunning;
 				}
 				else
 				{
@@ -306,23 +293,18 @@ static int app_start(void)
 						iCmp = memcmp(pucFlashData, _binary_netx90_app_bridge_img_start, sizFlashImage);
 						if( iCmp!=0 )
 						{
-							uprintf("Update failed, compare error.\n");
-							iResult = -1;
-						}
-						else
-						{
-							uprintf("Update OK.\n");
+							tResult = APP_BRIDGE_RESULT_AppFirmwareUpdateFlashFailed;
 						}
 					}
 					else
 					{
-						uprintf("Update failed.\n");
+						tResult = APP_BRIDGE_RESULT_AppFirmwareUpdateFlashFailed;
 					}
 				}
 			}
 		}
 
-		if( iResult==0 )
+		if( tResult==APP_BRIDGE_RESULT_Ok )
 		{
 			/* Activate the APP clock. */
 			ulValue  = ptAsicCtrlArea->asClock_enable[0].ulEnable;
@@ -334,7 +316,7 @@ static int app_start(void)
 		}
 	}
 
-	return iResult;
+	return tResult;
 }
 
 
@@ -401,13 +383,13 @@ static void idpm0_deinit_registers(void)
 
 
 
-int app_bridge_init(void)
+APP_BRIDGE_RESULT_T app_bridge_init(void)
 {
 	HOSTDEF(ptAsicCtrlComArea);
 	HOSTDEF(ptAsicCtrlArea);
 	HOSTDEF(ptIdpmComArea);
 	unsigned long ulValue;
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
 
 
 	/* Can the DPM clock be activated? */
@@ -415,8 +397,7 @@ int app_bridge_init(void)
 	ulValue &= HOSTMSK(clock_enable0_mask_dpm);
 	if( ulValue==0 )
 	{
-		uprintf("The DPM clock can not be activated.");
-		iResult = -1;
+		tResult = APP_BRIDGE_RESULT_DpmClocksMaskedOut;
 	}
 	else
 	{
@@ -472,25 +453,59 @@ int app_bridge_init(void)
 		ptAsicCtrlComArea->ulNetx_lock = HOSTMSK(netx_lock_unlock_dpm);
 
 		/* Start the APP CPU. */
-		iResult = app_start();
+		tResult = app_start();
 	}
 
-	return iResult;
+	return tResult;
 }
 
 
 
-int app_bridge_read_register(unsigned long ulAddress, unsigned long *pulValue)
+static APP_BRIDGE_RESULT_T check_app_status(APP_STATUS_T tStatus)
 {
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
+
+
+	tResult = APP_BRIDGE_RESULT_AppStatusUnknown;
+	switch(tStatus)
+	{
+	case APP_STATUS_Ok:
+		tResult = APP_BRIDGE_RESULT_Ok;
+		break;
+
+	case APP_STATUS_InvalidCommand:
+		tResult = APP_BRIDGE_RESULT_AppStatusInvalidCommand;
+		break;
+
+	case APP_STATUS_UnalignedAddress:
+		tResult = APP_BRIDGE_RESULT_AppStatusUnalignedAddress;
+		break;
+
+	case APP_STATUS_LengthTooLarge:
+		tResult = APP_BRIDGE_RESULT_AppStatusLengthTooLarge;
+		break;
+
+	case APP_STATUS_CallRunning:
+		tResult = APP_BRIDGE_RESULT_AppStatusCallRunning;
+		break;
+
+	case APP_STATUS_Idle:
+		tResult = APP_BRIDGE_RESULT_AppStatusIdle;
+		break;
+	}
+
+	return tResult;
+}
+
+
+
+APP_BRIDGE_RESULT_T app_bridge_read_register(unsigned long ulAddress, unsigned long *pulValue)
+{
+	APP_BRIDGE_RESULT_T tResult;
 	unsigned long ulRequestId;
 	unsigned long ulTime;
 	int iElapsed;
-	APP_STATUS_T tStatus;
 
-
-	/* Be pessimistic. */
-	iResult = -1;
 
 	/* Prepare the request. */
 	tDpm.tRequest.tCommand = APP_COMMAND_ReadRegister32;
@@ -502,39 +517,35 @@ int app_bridge_read_register(unsigned long ulAddress, unsigned long *pulValue)
 	tDpm.ulRequestCount = ulRequestId;
 
 	/* Wait for a response. */
+	tResult = APP_BRIDGE_RESULT_TransferTimeout;
 	ulTime = systime_get_ms();
 	do
 	{
 		if( tDpm.ulResponseCount==ulRequestId )
 		{
 			/* Check the status of the response. */
-			tStatus = tDpm.tRequest.tStatus;
-			if( tStatus==APP_STATUS_Ok )
+			tResult = check_app_status(tDpm.tRequest.tStatus);
+			if( tResult==APP_BRIDGE_RESULT_Ok )
 			{
 				*pulValue = tDpm.tRequest.uData.tReadRegister32.ulValue;
-				iResult = 0;
 			}
 			break;
 		}
 		iElapsed = systime_elapsed(ulTime, 1000U);
 	} while( iElapsed==0 );
 
-	return iResult;
+	return tResult;
 }
 
 
 
-int app_bridge_read_area(unsigned long ulAddress, unsigned long ulLengthInBytes, unsigned char *pucData)
+APP_BRIDGE_RESULT_T app_bridge_read_area(unsigned long ulAddress, unsigned long ulLengthInBytes, unsigned char *pucData)
 {
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
 	unsigned long ulRequestId;
 	unsigned long ulTime;
 	int iElapsed;
-	APP_STATUS_T tStatus;
 
-
-	/* Be pessimistic. */
-	iResult = -1;
 
 	/* Prepare the request. */
 	tDpm.tRequest.tCommand = APP_COMMAND_ReadArea;
@@ -547,39 +558,35 @@ int app_bridge_read_area(unsigned long ulAddress, unsigned long ulLengthInBytes,
 	tDpm.ulRequestCount = ulRequestId;
 
 	/* Wait for a response. */
+	tResult = APP_BRIDGE_RESULT_TransferTimeout;
 	ulTime = systime_get_ms();
 	do
 	{
 		if( tDpm.ulResponseCount==ulRequestId )
 		{
 			/* Check the status of the response. */
-			tStatus = tDpm.tRequest.tStatus;
-			if( tStatus==APP_STATUS_Ok )
+			tResult = check_app_status(tDpm.tRequest.tStatus);
+			if( tResult==APP_BRIDGE_RESULT_Ok )
 			{
 				memcpy(pucData, tDpm.tRequest.uData.tReadArea.aucData, ulLengthInBytes);
-				iResult = 0;
 			}
 			break;
 		}
 		iElapsed = systime_elapsed(ulTime, 1000U);
 	} while( iElapsed==0 );
 
-	return iResult;
+	return tResult;
 }
 
 
 
-int app_bridge_write_register(unsigned long ulAddress, unsigned long ulValue)
+APP_BRIDGE_RESULT_T app_bridge_write_register(unsigned long ulAddress, unsigned long ulValue)
 {
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
 	unsigned long ulRequestId;
 	unsigned long ulTime;
 	int iElapsed;
-	APP_STATUS_T tStatus;
 
-
-	/* Be pessimistic. */
-	iResult = -1;
 
 	/* Prepare the request. */
 	tDpm.tRequest.tCommand = APP_COMMAND_WriteRegister32;
@@ -592,37 +599,30 @@ int app_bridge_write_register(unsigned long ulAddress, unsigned long ulValue)
 	tDpm.ulRequestCount = ulRequestId;
 
 	/* Wait for a response. */
+	tResult = APP_BRIDGE_RESULT_TransferTimeout;
 	ulTime = systime_get_ms();
 	do
 	{
 		if( tDpm.ulResponseCount==ulRequestId )
 		{
 			/* Check the status of the response. */
-			tStatus = tDpm.tRequest.tStatus;
-			if( tStatus==APP_STATUS_Ok )
-			{
-				iResult = 0;
-			}
+			tResult = check_app_status(tDpm.tRequest.tStatus);
 			break;
 		}
 		iElapsed = systime_elapsed(ulTime, 1000U);
 	} while( iElapsed==0 );
 
-	return iResult;
+	return tResult;
 }
 
 
-int app_bridge_write_register_unlock(unsigned long ulAddress, unsigned long ulValue)
+APP_BRIDGE_RESULT_T app_bridge_write_register_unlock(unsigned long ulAddress, unsigned long ulValue)
 {
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
 	unsigned long ulRequestId;
 	unsigned long ulTime;
 	int iElapsed;
-	APP_STATUS_T tStatus;
 
-
-	/* Be pessimistic. */
-	iResult = -1;
 
 	/* Prepare the request. */
 	tDpm.tRequest.tCommand = APP_COMMAND_WriteRegister32Unlock;
@@ -635,37 +635,30 @@ int app_bridge_write_register_unlock(unsigned long ulAddress, unsigned long ulVa
 	tDpm.ulRequestCount = ulRequestId;
 
 	/* Wait for a response. */
+	tResult = APP_BRIDGE_RESULT_TransferTimeout;
 	ulTime = systime_get_ms();
 	do
 	{
 		if( tDpm.ulResponseCount==ulRequestId )
 		{
 			/* Check the status of the response. */
-			tStatus = tDpm.tRequest.tStatus;
-			if( tStatus==APP_STATUS_Ok )
-			{
-				iResult = 0;
-			}
+			tResult = check_app_status(tDpm.tRequest.tStatus);
 			break;
 		}
 		iElapsed = systime_elapsed(ulTime, 1000U);
 	} while( iElapsed==0 );
 
-	return iResult;
+	return tResult;
 }
 
 
-int app_bridge_write_area(unsigned long ulAddress, unsigned long ulLengthInBytes, const unsigned char *pucData)
+APP_BRIDGE_RESULT_T app_bridge_write_area(unsigned long ulAddress, unsigned long ulLengthInBytes, const unsigned char *pucData)
 {
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
 	unsigned long ulRequestId;
 	unsigned long ulTime;
 	int iElapsed;
-	APP_STATUS_T tStatus;
 
-
-	/* Be pessimistic. */
-	iResult = -1;
 
 	/* Prepare the request. */
 	tDpm.tRequest.tCommand = APP_COMMAND_WriteArea;
@@ -679,36 +672,29 @@ int app_bridge_write_area(unsigned long ulAddress, unsigned long ulLengthInBytes
 	tDpm.ulRequestCount = ulRequestId;
 
 	/* Wait for a response. */
+	tResult = APP_BRIDGE_RESULT_TransferTimeout;
 	ulTime = systime_get_ms();
 	do
 	{
 		if( tDpm.ulResponseCount==ulRequestId )
 		{
 			/* Check the status of the response. */
-			tStatus = tDpm.tRequest.tStatus;
-			if( tStatus==APP_STATUS_Ok )
-			{
-				iResult = 0;
-			}
+			tResult = check_app_status(tDpm.tRequest.tStatus);
 			break;
 		}
 		iElapsed = systime_elapsed(ulTime, 1000U);
 	} while( iElapsed==0 );
 
-	return iResult;
+	return tResult;
 }
 
 
 
-int app_bridge_call(unsigned long ulAddress, unsigned long ulR0, unsigned long ulR1, unsigned long ulR2, unsigned long ulR3, unsigned long *pulResult)
+APP_BRIDGE_RESULT_T app_bridge_call(unsigned long ulAddress, unsigned long ulR0, unsigned long ulR1, unsigned long ulR2, unsigned long ulR3, unsigned long *pulResult)
 {
-	int iResult;
+	APP_BRIDGE_RESULT_T tResult;
 	unsigned long ulRequestId;
-	APP_STATUS_T tStatus;
 
-
-	/* Be pessimistic. */
-	iResult = -1;
 
 	/* Prepare the request. */
 	tDpm.tRequest.tCommand = APP_COMMAND_Call;
@@ -727,12 +713,11 @@ int app_bridge_call(unsigned long ulAddress, unsigned long ulR0, unsigned long u
 	while( tDpm.ulResponseCount!=ulRequestId ) {}
 
 	/* Check the status of the response. */
-	tStatus = tDpm.tRequest.tStatus;
-	if( tStatus==APP_STATUS_Ok )
+	tResult = check_app_status(tDpm.tRequest.tStatus);
+	if( tResult==APP_BRIDGE_RESULT_Ok )
 	{
 		*pulResult = tDpm.tRequest.uData.tCall.ulResult;
-		iResult = 0;
 	}
 
-	return iResult;
+	return tResult;
 }

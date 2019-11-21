@@ -19,6 +19,7 @@
 #   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             #
 #-------------------------------------------------------------------------#
 
+import os
 
 #----------------------------------------------------------------------------
 #
@@ -57,8 +58,11 @@ atEnv.DEFAULT.Version('#targets/version/version.h', 'templates/version.h')
 #----------------------------------------------------------------------------
 # This is the list of sources. The elements must be separated with whitespace
 # (i.e. spaces, tabs, newlines). The amount of whitespace does not matter.
+sources_lib_com = """
+	src/lib_com/app_bridge.c
+"""
+
 sources_com = """
-	src/com/app_bridge.c
 	src/com/header.c
 	src/com/init_muhkuh.S
 	src/com/main.c
@@ -99,13 +103,19 @@ tTxtApp = tEnvApp.ObjDump('targets/netx90_app/netx90_app_bridge.txt', tElfApp, O
 tBinApp = tEnvApp.ObjCopy('targets/netx90_app/netx90_app_bridge.bin', tElfApp)
 tImgApp = tEnvApp.IFlashImage('targets/netx90_app/netx90_app_bridge.img', tBinApp)
 
+# Build the library for the COM side.
+tEnvLibCom = atEnv.NETX90.Clone()
+tEnvLibCom.Append(CPPPATH = astrIncludePaths)
+tObjApp = tEnvLibCom.ObjImport('targets/netx90_app/netx90_app_bridge.obj', tImgApp)
+tSrcLibCom = tEnvLibCom.SetBuildPath('targets/netx90_lib_com', 'src', sources_lib_com)
+tLibCom = tEnvLibCom.StaticLibrary('targets/netx90_app_bridge_com.a', tSrcLibCom + tObjApp)
+
 # This is the demo for the COM side.
 tEnvCom = atEnv.NETX90.Clone()
 tEnvCom.Append(CPPPATH = astrIncludePaths)
 tEnvCom.Replace(LDFILE = 'src/com/netx90/netx90_com_intram.ld')
-tObjApp = tEnvCom.ObjImport('targets/netx90_app/netx90_app_bridge.obj', tImgApp)
 tSrcCom = tEnvCom.SetBuildPath('targets/netx90_com', 'src', sources_com)
-tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'] + tObjApp)
+tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'] + tLibCom)
 tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com_demo.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
 BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com_demo.bin', tElfCom)
 
@@ -121,7 +131,94 @@ tBinModuleHispi = tEnvModuleHispi.ObjCopy('targets/netx90_module_hispi/netx90_mo
 BRIDGE_NETX90_LUA = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge.lua', tElfCom, GCCSYMBOLTEMPLATE_TEMPLATE=File('templates/app_bridge.lua'))
 BRIDGE_MODULE_HISPI = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge/modules/hispi.lua', tElfModuleHispi, GCCSYMBOLTEMPLATE_TEMPLATE=File('src/modules/hispi/templates/hispi.lua'))
 
+
+#----------------------------------------------------------------------------
+#
+# Build the documentation.
+#
+# Get the default attributes.
+aAttribs = atEnv.DEFAULT['ASCIIDOC_ATTRIBUTES']
+# Add some custom attributes.
+aAttribs.update(dict({
+    # Use ASCIIMath formulas.
+    'asciimath': True,
+
+    # Embed images into the HTML file as data URIs.
+    'data-uri': True,
+
+    # Use icons instead of text for markers and callouts.
+    'icons': True,
+
+    # Use numbers in the table of contents.
+    'numbered': True,
+
+    # Generate a scrollable table of contents on the left of the text.
+    'toc2': True,
+
+    # Use 4 levels in the table of contents.
+    'toclevels': 4
+}))
+
+doc = atEnv.DEFAULT.Asciidoc('targets/doc/netx90_app_bridge.html', 'doc/netx90_app_bridge.asciidoc', ASCIIDOC_BACKEND='html5', ASCIIDOC_ATTRIBUTES=aAttribs)
+
+
+# ---------------------------------------------------------------------------
+#
+# Build an archive.
+#
+strGroup = 'org.muhkuh.lua'
+strModule = 'netx90_app_bridge'
+
+# Split the group by dots.
+aGroup = strGroup.split('.')
+# Build the path for all artifacts.
+strModulePath = 'targets/jonchki/repository/%s/%s/%s' % ('/'.join(aGroup), strModule, PROJECT_VERSION)
+
+strArtifact = 'netx90_app_bridge'
+
+tArcList = atEnv.DEFAULT.ArchiveList('zip')
+
+tArcList.AddFiles('doc/',
+    doc)
+
+tArcList.AddFiles('netx/',
+    BRIDGE_NETX90_COM,
+    tBinModuleHispi
+)
+
+tArcList.AddFiles('lua/',
+    BRIDGE_NETX90_LUA
+)
+
+tArcList.AddFiles('lua/app_bridge/modules/',
+    BRIDGE_MODULE_HISPI
+)
+
+tArcList.AddFiles('dev/include/',
+    'src/lib_com/app_bridge.h'
+)
+
+tArcList.AddFiles('dev/lib/',
+    tLibCom
+)
+
+
+tArcList.AddFiles('',
+    'installer/%s-%s/install.lua' % (strGroup, strModule))
+
+
+strBasePath = os.path.join(strModulePath, '%s-%s' % (strArtifact, PROJECT_VERSION))
+tArtifact = atEnv.DEFAULT.Archive('%s.zip' % strBasePath, None, ARCHIVE_CONTENTS = tArcList)
+tArtifactHash = atEnv.DEFAULT.Hash('%s.hash' % tArtifact[0].get_path(), tArtifact[0].get_path(), HASH_ALGORITHM='md5,sha1,sha224,sha256,sha384,sha512', HASH_TEMPLATE='${ID_UC}:${HASH}\n')
+tConfiguration = atEnv.DEFAULT.Version('%s.xml' % strBasePath, 'installer/%s-%s/%s.xml' % (strGroup, strModule, strArtifact))
+tConfigurationHash = atEnv.DEFAULT.Hash('%s.hash' % tConfiguration[0].get_path(), tConfiguration[0].get_path(), HASH_ALGORITHM='md5,sha1,sha224,sha256,sha384,sha512', HASH_TEMPLATE='${ID_UC}:${HASH}\n')
+tPom = atEnv.DEFAULT.ArtifactVersion('%s.pom' % strBasePath, 'installer/%s-%s/%s.pom' % (strGroup, strModule, strArtifact))
+
+
+# ---------------------------------------------------------------------------
+#
 # Install the files to the testbench.
+#
 atFiles = {
     'targets/testbench/netx/netx90_app_bridge_com_demo.bin':      BRIDGE_NETX90_COM,
     'targets/testbench/lua/app_bridge.lua':                       BRIDGE_NETX90_LUA,

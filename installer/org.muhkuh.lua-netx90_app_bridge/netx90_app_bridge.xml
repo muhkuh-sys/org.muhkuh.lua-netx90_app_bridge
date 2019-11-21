@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jonchki-artifact version="1.0">
+	<info group="org.muhkuh.lua"
+	      module="netx90_app_bridge"
+	      artifact="netx90_app_bridge"
+	      version="${PROJECT_VERSION}"
+	      vcs-id="${PROJECT_VERSION_VCS}"
+	      extension="zip">
+		<license name="GPL-2.0"/>
+		<author name="Muhkuh Team" url="https://github.com/muhkuh-sys" />
+		<description>
+			Access netX90 APP side peripheral from the COM CPU.
+		</description>
+	</info>
+	<dependencies>
+		<dependency group="org.muhkuh.tools" module="muhkuh_base_cli" artifact="lua5.1-muhkuh_base_cli" version="2.4"/>
+		<dependency group="com.github.moteus" module="lua-log" artifact="lua-log" version="0.1.6"/>
+		<dependency group="com.github.stevedonovan" module="penlight" artifact="penlight" version="1.6"/>
+		<dependency group="org.luajit" module="bitop" artifact="lua5.1-bitop" version="1.0"/>
+	</dependencies>
+</jonchki-artifact>
