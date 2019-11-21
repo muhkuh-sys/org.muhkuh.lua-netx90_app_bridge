@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "../app_bridge_interface.h"
+#include "hispi.h"
 #include "netx_io_areas.h"
 #include "systime.h"
 
@@ -724,6 +725,83 @@ APP_BRIDGE_RESULT_T app_bridge_call(unsigned long ulAddress, unsigned long ulR0,
 	if( tResult==APP_BRIDGE_RESULT_Ok )
 	{
 		*pulResult = tDpm.tRequest.uData.tCall.ulResult;
+	}
+
+	return tResult;
+}
+
+
+
+extern const unsigned char _binary_netx90_module_hispi_bin_start[];
+
+APP_BRIDGE_RESULT_T app_bridge_module_hispi_initialize(unsigned long ulNumberOfNetiolDevices)
+{
+	APP_BRIDGE_RESULT_T tResult;
+	unsigned long ulResult;
+
+
+	/* Download the module code. */
+	tResult = app_bridge_write_area(APP_BRIDGE_MODULE_HISPI_CODE_START, APP_BRIDGE_MODULE_HISPI_CODE_END-APP_BRIDGE_MODULE_HISPI_CODE_START, _binary_netx90_module_hispi_bin_start);
+	if( tResult==APP_BRIDGE_RESULT_Ok )
+	{
+		tResult = app_bridge_call(APP_BRIDGE_MODULE_EXECUTE, HISPI_COMMAND_Initialize, ulNumberOfNetiolDevices, 0, 0, &ulResult);
+		if( tResult==APP_BRIDGE_RESULT_Ok )
+		{
+			if( ulResult!=HISPI_RESULT_Ok )
+			{
+				tResult = (APP_BRIDGE_RESULT_T)(0x0100 | ulResult);
+			}
+		}
+	}
+
+	return tResult;
+}
+
+
+
+APP_BRIDGE_RESULT_T app_bridge_module_hispi_readRegister16(unsigned char ucNode, unsigned short usAddress, unsigned short *pusValue)
+{
+	APP_BRIDGE_RESULT_T tResult;
+	unsigned long ulResult;
+	unsigned long ulData;
+
+
+	tResult = app_bridge_call(APP_BRIDGE_MODULE_EXECUTE, HISPI_COMMAND_ReadRegister16, ucNode, usAddress, APP_BRIDGE_MODULE_HISPI_BUFFER_START, &ulResult);
+	if( tResult==APP_BRIDGE_RESULT_Ok )
+	{
+		if( ulResult!=HISPI_RESULT_Ok )
+		{
+			tResult = (APP_BRIDGE_RESULT_T)(0x0100 | ulResult);
+		}
+		else
+		{
+			tResult = app_bridge_read_register(APP_BRIDGE_MODULE_HISPI_BUFFER_START, &ulData);
+			if( ulResult==HISPI_RESULT_Ok )
+			{
+				*pusValue = (unsigned short)(ulData & 0x0000ffffU);
+			}
+		}
+	}
+
+	return tResult;
+}
+
+
+
+
+APP_BRIDGE_RESULT_T app_bridge_module_hispi_writeRegister16(unsigned char ucNode, unsigned short usAddress, unsigned short usValue)
+{
+	APP_BRIDGE_RESULT_T tResult;
+	unsigned long ulResult;
+
+
+	tResult = app_bridge_call(APP_BRIDGE_MODULE_EXECUTE, HISPI_COMMAND_WriteRegister16, ucNode, usAddress, usValue, &ulResult);
+	if( tResult==APP_BRIDGE_RESULT_Ok )
+	{
+		if( ulResult!=HISPI_RESULT_Ok )
+		{
+			tResult = (APP_BRIDGE_RESULT_T)(0x0100 | ulResult);
+		}
 	}
 
 	return tResult;

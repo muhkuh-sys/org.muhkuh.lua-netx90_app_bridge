@@ -91,7 +91,7 @@ sources_module_hispi = """
 #
 
 # The list of include folders. Here it is used for all files.
-astrIncludePaths = ['src', '#platform/src', '#platform/src/lib', '#targets/version']
+astrIncludePaths = ['src', '#platform/src', '#platform/src/lib', '#targets/version', 'targets/netx90_module_hispi/include']
 
 # This is the bridge on the APP.
 tEnvApp = atEnv.NETX90_APP.Clone()
@@ -103,12 +103,23 @@ tTxtApp = tEnvApp.ObjDump('targets/netx90_app/netx90_app_bridge.txt', tElfApp, O
 tBinApp = tEnvApp.ObjCopy('targets/netx90_app/netx90_app_bridge.bin', tElfApp)
 tImgApp = tEnvApp.IFlashImage('targets/netx90_app/netx90_app_bridge.img', tBinApp)
 
+# This is an extension module for the bridge providing HiSPI routines.
+tEnvModuleHispi = atEnv.NETX90_APP.Clone()
+tEnvModuleHispi.Append(CPPPATH = astrIncludePaths)
+tEnvModuleHispi.Replace(LDFILE = 'src/modules/hispi/netx90/netx90_app_module.ld')
+tSrcModuleHispi = tEnvModuleHispi.SetBuildPath('targets/netx90_module_hispi', 'src', sources_module_hispi)
+tElfModuleHispi = tEnvModuleHispi.Elf('targets/netx90_module_hispi/netx90_module_hispi.elf', tSrcModuleHispi + tEnvModuleHispi['PLATFORM_LIBRARY'])
+tTxtModuleHispi = tEnvModuleHispi.ObjDump('targets/netx90_module_hispi/netx90_module_hispi.txt', tElfModuleHispi, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+tBinModuleHispi = tEnvModuleHispi.ObjCopy('targets/netx90_module_hispi/netx90_module_hispi.bin', tElfModuleHispi)
+tIncModuleHispi = tEnvModuleHispi.GccSymbolTemplate('targets/netx90_module_hispi/include/hispi.h', tElfModuleHispi, GCCSYMBOLTEMPLATE_TEMPLATE=File('src/modules/hispi/templates/hispi.h'))
+
 # Build the library for the COM side.
 tEnvLibCom = atEnv.NETX90.Clone()
 tEnvLibCom.Append(CPPPATH = astrIncludePaths)
 tObjApp = tEnvLibCom.ObjImport('targets/netx90_app/netx90_app_bridge.obj', tImgApp)
+tObjModuleHispi = tEnvLibCom.ObjImport('targets/netx90_module_hispi/netx90_module_hispi.obj', tBinModuleHispi)
 tSrcLibCom = tEnvLibCom.SetBuildPath('targets/netx90_lib_com', 'src', sources_lib_com)
-tLibCom = tEnvLibCom.StaticLibrary('targets/netx90_app_bridge_com.a', tSrcLibCom + tObjApp)
+tLibCom = tEnvLibCom.StaticLibrary('targets/netx90_app_bridge_com.a', tSrcLibCom + tObjApp + tObjModuleHispi)
 
 # This is the demo for the COM side.
 tEnvCom = atEnv.NETX90.Clone()
@@ -118,15 +129,6 @@ tSrcCom = tEnvCom.SetBuildPath('targets/netx90_com', 'src', sources_com)
 tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'] + tLibCom)
 tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com_demo.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
 BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com_demo.bin', tElfCom)
-
-# This is an extension module for the bridge providing HiSPI routines.
-tEnvModuleHispi = atEnv.NETX90_APP.Clone()
-tEnvModuleHispi.Append(CPPPATH = astrIncludePaths)
-tEnvModuleHispi.Replace(LDFILE = 'src/modules/hispi/netx90/netx90_app_module.ld')
-tSrcModuleHispi = tEnvModuleHispi.SetBuildPath('targets/netx90_module_hispi', 'src', sources_module_hispi)
-tElfModuleHispi = tEnvModuleHispi.Elf('targets/netx90_module_hispi/netx90_module_hispi.elf', tSrcModuleHispi + tEnvModuleHispi['PLATFORM_LIBRARY'])
-tTxtModuleHispi = tEnvModuleHispi.ObjDump('targets/netx90_module_hispi/netx90_module_hispi.txt', tElfModuleHispi, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
-tBinModuleHispi = tEnvModuleHispi.ObjCopy('targets/netx90_module_hispi/netx90_module_hispi.bin', tElfModuleHispi)
 
 BRIDGE_NETX90_LUA = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge.lua', tElfCom, GCCSYMBOLTEMPLATE_TEMPLATE=File('templates/app_bridge.lua'))
 BRIDGE_MODULE_HISPI = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge/modules/hispi.lua', tElfModuleHispi, GCCSYMBOLTEMPLATE_TEMPLATE=File('src/modules/hispi/templates/hispi.lua'))

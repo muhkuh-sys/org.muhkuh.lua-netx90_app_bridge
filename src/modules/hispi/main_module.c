@@ -156,7 +156,7 @@ static void copy_shifted(unsigned char *pucDst, const unsigned char *pucSrc, uns
 }
 
 
-
+#if 0
 static void copy_shifted_bits(unsigned char *pucDst, const unsigned char *pucSrc, unsigned int sizCopyBits, unsigned int uiDstOffsetBits)
 {
 	const unsigned char *pucSrcCnt;
@@ -192,7 +192,7 @@ static void copy_shifted_bits(unsigned char *pucDst, const unsigned char *pucSrc
 		}
 	}
 }
-
+#endif
 
 
 typedef struct HISPI_PACKET_STRUCT
@@ -475,7 +475,7 @@ static int write_single(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsign
 }
 
 
-
+#if 0
 static int write_single_32(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsigned short usMemoryAddress, unsigned long ulData)
 {
 	int iResult;
@@ -529,7 +529,7 @@ static int write_single_32(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, uns
 
 	return iResult;
 }
-
+#endif
 
 
 static int read_single(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsigned short usMemoryAddress, unsigned short *pusData)
@@ -601,7 +601,7 @@ static int read_single(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsigne
 }
 
 
-
+#if 0
 static int read_single_32(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsigned short usMemoryAddress, unsigned long *pulData)
 {
 	int iResult;
@@ -652,7 +652,7 @@ static int read_single_32(SPI_CFG_T *ptSpiCfg, unsigned char ucNodeAddress, unsi
 
 	return iResult;
 }
-
+#endif
 
 
 static unsigned long netiol_device_init(SPI_CFG_T *ptSpiCfg, const unsigned short *pusMisoCfg, unsigned int uiNumberOfDevices)

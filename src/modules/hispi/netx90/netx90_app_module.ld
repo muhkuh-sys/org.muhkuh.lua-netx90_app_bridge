@@ -45,8 +45,10 @@ SECTIONS
 
 	.code ORIGIN(CODE) :
 	{
+		__code_start__ = . ;
 		KEEP(*(.init_code))
 		*(.text* .rodata*)
+		__code_end__ = . ;
 	} >CODE
 
 	.bss :
