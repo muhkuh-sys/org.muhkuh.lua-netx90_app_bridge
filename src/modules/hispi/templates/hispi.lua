@@ -1,4 +1,42 @@
 local class = require 'pl.class'
+local HiSpiSequence = class()
+
+function HiSpiSequence:_init(tHiSpi, tLog)
+  self.tHiSpi = tHiSpi
+  self.tLog = tLog
+
+  self.tSequence = { readsize = 0 }
+end
+
+
+function HiSpiSequence:readRegister16(ucNetIolNode, usAddress)
+  local strBin = string.pack('<I1I1I2', self.tHiSpi.HISPI_COMMAND_ReadRegister16, ucNetIolNode, usAddress)
+  local tSequence = self.tSequence
+  table.insert(tSequence, strBin)
+  tSequence.readsize = tSequence.readsize + 2
+end
+
+
+function HiSpiSequence:writeRegister16(ucNetIolNode, usAddress, usData)
+  local strBin = string.pack('<I1I1I2I2', self.tHiSpi.HISPI_COMMAND_WriteRegister16, ucNetIolNode, usAddress, usData)
+  local tSequence = self.tSequence
+  table.insert(tSequence, strBin)
+end
+
+
+function HiSpiSequence:run()
+  local tSequence = self.tSequence
+
+  -- Get the sequence data.
+  local strSequence = table.concat(tSequence)
+  -- Get the size of the result data.
+  local sizResultData = tSequence.readsize
+
+  return self.tHiSpi:__sequence_run(strSequence, sizResultData)
+end
+
+
+
 local AppBridgeModuleHiSpi = class()
 
 function AppBridgeModuleHiSpi:_init(tAppBridge, tLog)
@@ -19,6 +57,7 @@ function AppBridgeModuleHiSpi:_init(tAppBridge, tLog)
   self.HISPI_COMMAND_Initialize = ${HISPI_COMMAND_Initialize}
   self.HISPI_COMMAND_ReadRegister16 = ${HISPI_COMMAND_ReadRegister16}
   self.HISPI_COMMAND_WriteRegister16 = ${HISPI_COMMAND_WriteRegister16}
+  self.HISPI_COMMAND_RunSequence = ${HISPI_COMMAND_RunSequence}
 end
 
 
@@ -69,6 +108,45 @@ function AppBridgeModuleHiSpi:writeRegister16(ucNetIolNode, usAddress, usData)
   end
 end
 
+
+function AppBridgeModuleHiSpi:sequence_create()
+  return HiSpiSequence(self, self.tLog)
+end
+
+
+function AppBridgeModuleHiSpi:__sequence_run(strSequence, sizResultData)
+  local tLog = self.tLog
+  local tAppBridge = self.tAppBridge
+  local tResult
+
+  local sizSequence = string.len(strSequence)
+  if sizSequence==0 then
+    tLog.debug('Ignoring empty sequence.')
+    tResult = true
+  else
+    -- Copy the sequence to the APP buffer.
+    tResult = tAppBridge:write_area(self.ulModuleBufferArea, strSequence)
+    if tResult~=true then
+      tLog.error('Failed to write the sequence data.')
+      error('Failed to write the sequence data.')
+    else
+      -- Run the sequence.
+      local ulResult = tAppBridge:call(self.ulModuleExecAddress, self.HISPI_COMMAND_RunSequence, sizSequence)
+      if ulResult~=0 then
+        tLog.error('Failed to execute the sequence : %d', ulResult)
+        error('Failed to execute the sequence.')
+      else
+        if sizResultData==0 then
+          tResult = true
+        else
+          tResult = tAppBridge:read_area(self.ulModuleBufferArea, sizResultData)
+        end
+      end
+    end
+  end
+
+  return tResult
+end
 
 
 return AppBridgeModuleHiSpi

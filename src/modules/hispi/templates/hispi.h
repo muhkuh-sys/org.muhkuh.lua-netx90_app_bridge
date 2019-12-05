@@ -14,3 +14,4 @@
 #define HISPI_COMMAND_Initialize ${HISPI_COMMAND_Initialize}
 #define HISPI_COMMAND_ReadRegister16 ${HISPI_COMMAND_ReadRegister16}
 #define HISPI_COMMAND_WriteRegister16 ${HISPI_COMMAND_WriteRegister16}
+#define HISPI_COMMAND_RunTransaction ${HISPI_COMMAND_RunTransaction}

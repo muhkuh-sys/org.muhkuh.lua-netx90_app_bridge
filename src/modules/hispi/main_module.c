@@ -1010,6 +1010,118 @@ static unsigned long module_command_write16(unsigned long ulNodeAddress, unsigne
 
 
 
+extern unsigned char __buffer_start__[];
+
+static unsigned long module_command_sequence(unsigned long ulSequenceSize)
+{
+	unsigned long ulResult;
+	unsigned char *pucSequenceCnt;
+	unsigned char *pucSequenceEnd;
+	unsigned char *pucOutCnt;
+	unsigned long ulSizeLeft;
+	HISPI_COMMAND_T tCommand;
+	unsigned long ulNodeAddress;
+	unsigned long ulRegisterAddress;
+	unsigned short usData;
+
+
+	ulResult = HISPI_RESULT_Ok;
+
+	pucOutCnt = __buffer_start__;
+
+	/* Loop over all sequences. */
+	pucSequenceCnt = __buffer_start__;
+	pucSequenceEnd = pucSequenceCnt + ulSequenceSize;
+	while( pucSequenceCnt<pucSequenceEnd )
+	{
+		ulResult = HISPI_RESULT_InvalidSequenceCommand;
+		tCommand = (HISPI_COMMAND_T)(pucSequenceCnt[0]);
+		switch(tCommand)
+		{
+		case HISPI_COMMAND_Initialize:
+			/* The "initialize" command can not be used in a sequence. */
+			break;
+
+		case HISPI_COMMAND_ReadRegister16:
+		case HISPI_COMMAND_WriteRegister16:
+			ulResult = HISPI_RESULT_Ok;
+			break;
+
+		case HISPI_COMMAND_RunSequence:
+			/* The "run sequence" command can not be used in a sequence. */
+			break;
+		}
+		if( ulResult==HISPI_RESULT_Ok )
+		{
+			ulSizeLeft = (unsigned long)(pucSequenceEnd - pucSequenceCnt);
+
+			ulResult = HISPI_RESULT_InvalidSequenceCommand;
+			switch(tCommand)
+			{
+			case HISPI_COMMAND_Initialize:
+				/* The "initialize" command can not be used in a sequence. */
+				break;
+
+			case HISPI_COMMAND_ReadRegister16:
+				/* The ReadRegister16 command needs 4 bytes. */
+				if( ulSizeLeft<4U )
+				{
+					ulResult = HISPI_RESULT_NotEnoughSequenceData;
+				}
+				else
+				{
+					ulNodeAddress = (unsigned long)(pucSequenceCnt[1]);
+					ulRegisterAddress  = (unsigned long)(pucSequenceCnt[2]);
+					ulRegisterAddress |= (unsigned long)(pucSequenceCnt[3] << 8U);
+					ulResult = module_command_read16(ulNodeAddress, ulRegisterAddress, &usData);
+					if( ulResult==HISPI_RESULT_Ok )
+					{
+						pucOutCnt[0] = (unsigned char)( usData       & 0xffU);
+						pucOutCnt[1] = (unsigned char)((usData >> 8) & 0xffU);
+
+						pucSequenceCnt += 4U;
+						pucOutCnt += 2U;
+					}
+				}
+				break;
+
+			case HISPI_COMMAND_WriteRegister16:
+				/* The WriteRegister16 command needs 6 bytes. */
+				if( ulSizeLeft<6U )
+				{
+					ulResult = HISPI_RESULT_NotEnoughSequenceData;
+				}
+				else
+				{
+					ulNodeAddress = (unsigned long)(pucSequenceCnt[1]);
+					ulRegisterAddress  = (unsigned long)(pucSequenceCnt[2]);
+					ulRegisterAddress |= (unsigned long)(pucSequenceCnt[3] << 8U);
+					usData = (unsigned short)(((unsigned long)(pucSequenceCnt[4])) | ((unsigned long)(pucSequenceCnt[5]<<8U)));
+					ulResult = module_command_write16(ulNodeAddress, ulRegisterAddress, usData);
+					if( ulResult==HISPI_RESULT_Ok )
+					{
+						pucSequenceCnt += 6U;
+					}
+				}
+				break;
+
+			case HISPI_COMMAND_RunSequence:
+				/* The "run sequence" command can not be used in a sequence. */
+				break;
+			}
+
+			if( ulResult!=HISPI_RESULT_Ok )
+			{
+				break;
+			}
+		}
+	}
+
+	return ulResult;
+}
+
+
+
 unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, unsigned long ulParameter2, unsigned long ulParameter3)
 {
 	unsigned long ulResult;
@@ -1042,6 +1154,10 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 		/* Write 16 */
 		usData = (unsigned short)(ulParameter3 & 0xffffU);
 		ulResult = module_command_write16(ulParameter1, ulParameter2, usData);
+	}
+	else if( ulParameter0==HISPI_COMMAND_RunSequence )
+	{
+		ulResult = module_command_sequence(ulParameter1);
 	}
 	else
 	{
