@@ -5,12 +5,44 @@ function HiSpiSequence:_init(tHiSpi, tLog)
   self.tHiSpi = tHiSpi
   self.tLog = tLog
 
+  -- Get the LUA version number in the form major * 100 + minor .
+  local strMaj, strMin = string.match(_VERSION, '^Lua (%d+)%.(%d+)$')
+  if strMaj~=nil then
+    self.LUA_VER_NUM = tonumber(strMaj) * 100 + tonumber(strMin)
+  end
+
+  if self.LUA_VER_NUM==501 then
+    local vstruct = require "vstruct"
+    self.tStructureReadRegister16 = vstruct.compile([[
+      ucCommand:u1
+      ucNetIolNode:u1
+      usAddress:u2
+    ]])
+
+    self.tStructureWriteRegister16 = vstruct.compile([[
+      ucCommand:u1
+      ucNetIolNode:u1
+      usAddress:u2
+      usData:u2
+    ]])
+  end
+
   self.tSequence = { readsize = 0 }
 end
 
 
 function HiSpiSequence:readRegister16(ucNetIolNode, usAddress)
-  local strBin = string.pack('<I1I1I2', self.tHiSpi.HISPI_COMMAND_ReadRegister16, ucNetIolNode, usAddress)
+  local strBin
+  if self.LUA_VER_NUM==501 then
+    strBin = self.tStructureReadRegister16:write{
+      ucCommand = self.tHiSpi.HISPI_COMMAND_ReadRegister16,
+      ucNetIolNode = ucNetIolNode,
+      usAddress = usAddress
+    }
+  else
+    strBin = string.pack('<I1I1I2', self.tHiSpi.HISPI_COMMAND_ReadRegister16, ucNetIolNode, usAddress)
+  end
+
   local tSequence = self.tSequence
   table.insert(tSequence, strBin)
   tSequence.readsize = tSequence.readsize + 2
@@ -18,7 +50,18 @@ end
 
 
 function HiSpiSequence:writeRegister16(ucNetIolNode, usAddress, usData)
-  local strBin = string.pack('<I1I1I2I2', self.tHiSpi.HISPI_COMMAND_WriteRegister16, ucNetIolNode, usAddress, usData)
+  local strBin
+  if self.LUA_VER_NUM==501 then
+    strBin = self.tStructureWriteRegister16:write{
+      ucCommand = self.tHiSpi.HISPI_COMMAND_WriteRegister16,
+      ucNetIolNode = ucNetIolNode,
+      usAddress = usAddress,
+      usData = usData
+    }
+  else
+    strBin = string.pack('<I1I1I2I2', self.tHiSpi.HISPI_COMMAND_WriteRegister16, ucNetIolNode, usAddress, usData)
+  end
+
   local tSequence = self.tSequence
   table.insert(tSequence, strBin)
 end
