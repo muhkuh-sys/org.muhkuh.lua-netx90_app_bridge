@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#-------------------------------------------------------------------------#
+# ----------------------------------------------------------------------- #
 #   Copyright (C) 2011 by Christoph Thelen                                #
 #   doc_bacardi@users.sourceforge.net                                     #
 #                                                                         #
@@ -17,11 +17,11 @@
 #   along with this program; if not, write to the                         #
 #   Free Software Foundation, Inc.,                                       #
 #   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             #
-#-------------------------------------------------------------------------#
+# ----------------------------------------------------------------------- #
 
 import os
 
-#----------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 #
 # Set up the Muhkuh Build System.
 #
@@ -48,44 +48,44 @@ env_cortexM4.CreateCompilerEnv('NETX90_APP', ['arch=armv7', 'thumb'], ['arch=arm
 SConscript('platform/SConscript')
 
 
-#----------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 #
 # Get the source code version from the VCS.
 #
 atEnv.DEFAULT.Version('#targets/version/version.h', 'templates/version.h')
 
 
-#----------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 # This is the list of sources. The elements must be separated with whitespace
 # (i.e. spaces, tabs, newlines). The amount of whitespace does not matter.
 sources_lib_com = """
-	src/lib_com/app_bridge.c
+    src/lib_com/app_bridge.c
 """
 
 sources_com = """
-	src/com/header.c
-	src/com/init_muhkuh.S
-	src/com/main.c
+    src/com/header.c
+    src/com/init_muhkuh.S
+    src/com/main.c
 """
 
 sources_app = """
-	src/app/app_hboot_header_iflash.c
-	src/app/cm4_app_vector_table_iflash.c
-	src/app/header.c
-	src/app/init.S
-	src/app/main.c
+    src/app/app_hboot_header_iflash.c
+    src/app/cm4_app_vector_table_iflash.c
+    src/app/header.c
+    src/app/init.S
+    src/app/main.c
 """
 
 sources_module_hispi = """
-	src/modules/hispi/boot_drv_spi.c
-	src/modules/hispi/boot_spi.c
-	src/modules/hispi/crc.c
-	src/modules/hispi/init_module.S
-	src/modules/hispi/main_module.c
-	src/modules/hispi/pad_control.c
+    src/modules/hispi/boot_drv_spi.c
+    src/modules/hispi/boot_spi.c
+    src/modules/hispi/crc.c
+    src/modules/hispi/init_module.S
+    src/modules/hispi/main_module.c
+    src/modules/hispi/pad_control.c
 """
 
-#----------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 #
 # Build all files.
 #
@@ -134,7 +134,7 @@ BRIDGE_NETX90_LUA = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge.lua',
 BRIDGE_MODULE_HISPI = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge/modules/hispi.lua', tElfModuleHispi, GCCSYMBOLTEMPLATE_TEMPLATE=File('src/modules/hispi/templates/hispi.lua'))
 
 
-#----------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 #
 # Build the documentation.
 #
@@ -181,32 +181,27 @@ strArtifact = 'netx90_app_bridge'
 tArcList = atEnv.DEFAULT.ArchiveList('zip')
 
 tArcList.AddFiles('doc/',
-    doc)
+                  doc)
 
 tArcList.AddFiles('netx/',
-    BRIDGE_NETX90_COM,
-    tBinModuleHispi
-)
+                  BRIDGE_NETX90_COM,
+                  tBinModuleHispi)
 
 tArcList.AddFiles('lua/',
-    BRIDGE_NETX90_LUA
-)
+                  BRIDGE_NETX90_LUA)
 
 tArcList.AddFiles('lua/app_bridge/modules/',
-    BRIDGE_MODULE_HISPI
-)
+                  BRIDGE_MODULE_HISPI)
 
 tArcList.AddFiles('dev/include/',
-    'src/lib_com/app_bridge.h'
-)
+                  'src/lib_com/app_bridge.h')
 
 tArcList.AddFiles('dev/lib/',
-    tLibCom
-)
+                  tLibCom)
 
 
 tArcList.AddFiles('',
-    'installer/%s-%s/install.lua' % (strGroup, strModule))
+                  'installer/%s-%s/install.lua' % (strGroup, strModule))
 
 
 strBasePath = os.path.join(strModulePath, '%s-%s' % (strArtifact, PROJECT_VERSION))
@@ -217,7 +212,7 @@ tConfigurationHash = atEnv.DEFAULT.Hash('%s.hash' % tConfiguration[0].get_path()
 tPom = atEnv.DEFAULT.ArtifactVersion('%s.pom' % strBasePath, 'installer/%s-%s/%s.pom' % (strGroup, strModule, strArtifact))
 
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 #
 # Install the files to the testbench.
 #
@@ -227,7 +222,5 @@ atFiles = {
     'targets/testbench/lua/app_bridge/modules/hispi.lua':         BRIDGE_MODULE_HISPI,
     'targets/testbench/netx/netx90_module_hispi.bin':             tBinModuleHispi
 }
-for tDst, tSrc in atFiles.iteritems():
+for tDst, tSrc in atFiles.items():
     Command(tDst, tSrc, Copy("$TARGET", "$SOURCE"))
-
-
