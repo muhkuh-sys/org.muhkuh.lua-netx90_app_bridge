@@ -21,7 +21,7 @@ end
 function AppBridge:initialize()
   local tResult
   local tPlugin = self.__tPlugin
-  local aAttr = tester:mbin_open('netx/netx90_app_bridge_com_demo.bin', tPlugin)
+  local aAttr = tester:mbin_open('netx/netx90_app_bridge_com.bin', tPlugin)
   tester:mbin_debug(aAttr)
   tester:mbin_write(tPlugin, aAttr)
 

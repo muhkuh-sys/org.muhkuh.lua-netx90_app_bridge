@@ -121,14 +121,14 @@ tObjModuleHispi = tEnvLibCom.ObjImport('targets/netx90_module_hispi/netx90_modul
 tSrcLibCom = tEnvLibCom.SetBuildPath('targets/netx90_lib_com', 'src', sources_lib_com)
 tLibCom = tEnvLibCom.StaticLibrary('targets/netx90_app_bridge_com.a', tSrcLibCom + tObjApp + tObjModuleHispi)
 
-# This is the demo for the COM side.
+# This is the controller for the COM side.
 tEnvCom = atEnv.NETX90.Clone()
 tEnvCom.Append(CPPPATH = astrIncludePaths)
 tEnvCom.Replace(LDFILE = 'src/com/netx90/netx90_com_intram.ld')
 tSrcCom = tEnvCom.SetBuildPath('targets/netx90_com', 'src', sources_com)
-tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com_demo.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'] + tLibCom)
-tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com_demo.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
-BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com_demo.bin', tElfCom)
+tElfCom = tEnvCom.Elf('targets/netx90_app_bridge_com.elf', tSrcCom + tEnvCom['PLATFORM_LIBRARY'] + tLibCom)
+tTxtCom = tEnvCom.ObjDump('targets/netx90_app_bridge_com.txt', tElfCom, OBJDUMP_FLAGS=['--disassemble', '--source', '--all-headers', '--wide'])
+BRIDGE_NETX90_COM = tEnvCom.ObjCopy('targets/netx90_app_bridge_com.bin', tElfCom)
 
 BRIDGE_NETX90_LUA = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge.lua', tElfCom, GCCSYMBOLTEMPLATE_TEMPLATE=File('templates/app_bridge.lua'))
 BRIDGE_MODULE_HISPI = atEnv.NETX90.GccSymbolTemplate('targets/lua/app_bridge/modules/hispi.lua', tElfModuleHispi, GCCSYMBOLTEMPLATE_TEMPLATE=File('src/modules/hispi/templates/hispi.lua'))
@@ -217,7 +217,7 @@ tPom = atEnv.DEFAULT.ArtifactVersion('%s.pom' % strBasePath, 'installer/%s-%s/%s
 # Install the files to the testbench.
 #
 atFiles = {
-    'targets/testbench/netx/netx90_app_bridge_com_demo.bin':      BRIDGE_NETX90_COM,
+    'targets/testbench/netx/netx90_app_bridge_com.bin':           BRIDGE_NETX90_COM,
     'targets/testbench/lua/app_bridge.lua':                       BRIDGE_NETX90_LUA,
     'targets/testbench/lua/app_bridge/modules/hispi.lua':         BRIDGE_MODULE_HISPI,
     'targets/testbench/netx/netx90_module_hispi.bin':             tBinModuleHispi
