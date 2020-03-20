@@ -38,6 +38,7 @@
 
 SPI_CFG_T s_tSpiCfg;
 
+static unsigned long s_ulNumberOfInitializedNetIols;
 
 typedef union PTR_UNION
 {
@@ -818,18 +819,39 @@ static unsigned long hispi_initialize(const HISPI_PARAMETER_T *ptParameter, cons
 	unsigned char ucNodeAddress;
 
 
-	iResult = open_driver(ptParameter->uiUnit, ptParameter->uiChipSelect, &(ptParameter->tSpiConfiguration), &s_tSpiCfg);
-	if( iResult!=0 )
+	/* The number of netIOLs must not be 0 and not larger than 16.
+	 * 16 is a randomly picked number. The absolute maximum I saw
+	 * out in the wild was 4 netIOLs.
+	 */
+	if( uiNumberOfDevices>0 && uiNumberOfDevices<17 )
 	{
-		ulResult = HISPI_RESULT_FailedToOpenSpi;
+		iResult = open_driver(ptParameter->uiUnit, ptParameter->uiChipSelect, &(ptParameter->tSpiConfiguration), &s_tSpiCfg);
+		if( iResult!=0 )
+		{
+			ulResult = HISPI_RESULT_FailedToOpenSpi;
+		}
+		else
+		{
+			ulResult = HISPI_RESULT_Ok;
+			for(uiCnt=0; uiCnt<uiNumberOfDevices; ++uiCnt)
+			{
+				ucNodeAddress = (unsigned char)(uiCnt & 0xffU);
+				ulResult = netiol_device_init(&s_tSpiCfg, pusMisoCfg, ucNodeAddress);
+				if( ulResult!=0 )
+				{
+					break;
+				}
+			}
+
+			if( ulResult==HISPI_RESULT_Ok )
+			{
+				s_ulNumberOfInitializedNetIols = uiNumberOfDevices;
+			}
+		}
 	}
 	else
 	{
-		for(uiCnt=0; uiCnt<uiNumberOfDevices; ++uiCnt)
-		{
-			ucNodeAddress = (unsigned char)(uiCnt & 0xffU);
-			ulResult = netiol_device_init(&s_tSpiCfg, pusMisoCfg, ucNodeAddress);
-		}
+		ulResult = HISPI_RESULT_InvalidNumberOfNetiol;
 	}
 
 	return ulResult;
@@ -947,17 +969,32 @@ static unsigned long module_command_read16(unsigned long ulNodeAddress, unsigned
 	unsigned short usAddr;
 
 
-	ucNodeAddress = (unsigned char)(ulNodeAddress & 0xffU);
-	usAddr = (unsigned short)(ulRegisterAddress & 0xffffU);
-
-	iResult = read_single(&s_tSpiCfg, ucNodeAddress, usAddr, pusData);
-	if( iResult!=0 )
+	if(ulNodeAddress>=s_ulNumberOfInitializedNetIols)
 	{
-		ulResult = HISPI_RESULT_HiSpiAccessFailed;
+		ulResult = HISPI_RESULT_InvalidNumberOfNetiol;
+	}
+	else if(ulRegisterAddress>0xfffe)
+	{
+		ulResult = HISPI_RESULT_AddressExceeds16Bit;
+	}
+	else if( (ulRegisterAddress&1)!=0 )
+	{
+		ulResult = HISPI_RESULT_UnalignedAddress;
 	}
 	else
 	{
-		ulResult = HISPI_RESULT_Ok;
+		ucNodeAddress = (unsigned char)(ulNodeAddress & 0xffU);
+		usAddr = (unsigned short)(ulRegisterAddress & 0xffffU);
+
+		iResult = read_single(&s_tSpiCfg, ucNodeAddress, usAddr, pusData);
+		if( iResult!=0 )
+		{
+			ulResult = HISPI_RESULT_HiSpiAccessFailed;
+		}
+		else
+		{
+			ulResult = HISPI_RESULT_Ok;
+		}
 	}
 
 	return ulResult;
@@ -973,17 +1010,32 @@ static unsigned long module_command_write16(unsigned long ulNodeAddress, unsigne
 	unsigned short usAddr;
 
 
-	ucNodeAddress = (unsigned char)(ulNodeAddress & 0xffU);
-	usAddr = (unsigned short)(ulRegisterAddress & 0xffffU);
-
-	iResult = write_single(&s_tSpiCfg, ucNodeAddress, usAddr, usData);
-	if( iResult!=0 )
+	if(ulNodeAddress>=s_ulNumberOfInitializedNetIols)
 	{
-		ulResult = HISPI_RESULT_HiSpiAccessFailed;
+		ulResult = HISPI_RESULT_InvalidNumberOfNetiol;
+	}
+	else if(ulRegisterAddress>0xfffe)
+	{
+		ulResult = HISPI_RESULT_AddressExceeds16Bit;
+	}
+	else if( (ulRegisterAddress&1)!=0 )
+	{
+		ulResult = HISPI_RESULT_UnalignedAddress;
 	}
 	else
 	{
-		ulResult = HISPI_RESULT_Ok;
+		ucNodeAddress = (unsigned char)(ulNodeAddress & 0xffU);
+		usAddr = (unsigned short)(ulRegisterAddress & 0xffffU);
+
+		iResult = write_single(&s_tSpiCfg, ucNodeAddress, usAddr, usData);
+		if( iResult!=0 )
+		{
+			ulResult = HISPI_RESULT_HiSpiAccessFailed;
+		}
+		else
+		{
+			ulResult = HISPI_RESULT_Ok;
+		}
 	}
 
 	return ulResult;
@@ -1054,14 +1106,30 @@ static unsigned long module_command_sequence(unsigned long ulSequenceSize)
 					ulNodeAddress = (unsigned long)(pucSequenceCnt[1]);
 					ulRegisterAddress  = (unsigned long)(pucSequenceCnt[2]);
 					ulRegisterAddress |= (unsigned long)(pucSequenceCnt[3] << 8U);
-					ulResult = module_command_read16(ulNodeAddress, ulRegisterAddress, &usData);
-					if( ulResult==HISPI_RESULT_Ok )
-					{
-						pucOutCnt[0] = (unsigned char)( usData       & 0xffU);
-						pucOutCnt[1] = (unsigned char)((usData >> 8) & 0xffU);
 
-						pucSequenceCnt += 4U;
-						pucOutCnt += 2U;
+					if(ulNodeAddress>=s_ulNumberOfInitializedNetIols)
+					{
+						ulResult = HISPI_RESULT_InvalidNumberOfNetiol;
+					}
+					else if(ulRegisterAddress>0xfffe)
+					{
+						ulResult = HISPI_RESULT_AddressExceeds16Bit;
+					}
+					else if( (ulRegisterAddress&1)!=0 )
+					{
+						ulResult = HISPI_RESULT_UnalignedAddress;
+					}
+					else
+					{
+						ulResult = module_command_read16(ulNodeAddress, ulRegisterAddress, &usData);
+						if( ulResult==HISPI_RESULT_Ok )
+						{
+							pucOutCnt[0] = (unsigned char)( usData       & 0xffU);
+							pucOutCnt[1] = (unsigned char)((usData >> 8) & 0xffU);
+
+							pucSequenceCnt += 4U;
+							pucOutCnt += 2U;
+						}
 					}
 				}
 				break;
@@ -1078,10 +1146,26 @@ static unsigned long module_command_sequence(unsigned long ulSequenceSize)
 					ulRegisterAddress  = (unsigned long)(pucSequenceCnt[2]);
 					ulRegisterAddress |= (unsigned long)(pucSequenceCnt[3] << 8U);
 					usData = (unsigned short)(((unsigned long)(pucSequenceCnt[4])) | ((unsigned long)(pucSequenceCnt[5]<<8U)));
-					ulResult = module_command_write16(ulNodeAddress, ulRegisterAddress, usData);
-					if( ulResult==HISPI_RESULT_Ok )
+
+					if(ulNodeAddress>=s_ulNumberOfInitializedNetIols)
 					{
-						pucSequenceCnt += 6U;
+						ulResult = HISPI_RESULT_InvalidNumberOfNetiol;
+					}
+					else if(ulRegisterAddress>0xfffe)
+					{
+						ulResult = HISPI_RESULT_AddressExceeds16Bit;
+					}
+					else if( (ulRegisterAddress&1)!=0 )
+					{
+						ulResult = HISPI_RESULT_UnalignedAddress;
+					}
+					else
+					{
+						ulResult = module_command_write16(ulNodeAddress, ulRegisterAddress, usData);
+						if( ulResult==HISPI_RESULT_Ok )
+						{
+							pucSequenceCnt += 6U;
+						}
 					}
 				}
 				break;
@@ -1113,6 +1197,8 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 	if( ulParameter0==HISPI_COMMAND_Initialize )
 	{
 		/* Initialize. */
+		s_ulNumberOfInitializedNetIols = 0;
+
 		mirror_test_pattern();
 		setup_nodeaddress_mirror_table();
 

@@ -28,14 +28,17 @@
 
 typedef enum HISPI_RESULT_ENUM
 {
-	HISPI_RESULT_Ok                         = 0,
-	HISPI_RESULT_UnknownCommand             = 1,
-	HISPI_RESULT_FailedToOpenSpi            = 2,
-	HISPI_RESULT_HiSpiAccessFailed          = 3,
-	HISPI_RESULT_UnknownBootCommand         = 4,
-	HISPI_RESULT_DeviceDidNotStopBooting    = 5,
-	HISPI_RESULT_InvalidSequenceCommand     = 6,
-	HISPI_RESULT_NotEnoughSequenceData      = 7
+	HISPI_RESULT_Ok                         =  0,
+	HISPI_RESULT_UnknownCommand             =  1,
+	HISPI_RESULT_FailedToOpenSpi            =  2,
+	HISPI_RESULT_HiSpiAccessFailed          =  3,
+	HISPI_RESULT_UnknownBootCommand         =  4,
+	HISPI_RESULT_DeviceDidNotStopBooting    =  5,
+	HISPI_RESULT_InvalidSequenceCommand     =  6,
+	HISPI_RESULT_NotEnoughSequenceData      =  7,
+	HISPI_RESULT_InvalidNumberOfNetiol      =  8,
+	HISPI_RESULT_AddressExceeds16Bit        =  9,
+	HISPI_RESULT_UnalignedAddress           = 10
 } HISPI_RESULT_T;
 
 
