@@ -117,9 +117,8 @@ tIncModuleHispi = tEnvModuleHispi.GccSymbolTemplate('targets/netx90_module_hispi
 tEnvLibCom = atEnv.NETX90.Clone()
 tEnvLibCom.Append(CPPPATH = astrIncludePaths)
 tObjApp = tEnvLibCom.ObjImport('targets/netx90_app/netx90_app_bridge.obj', tImgApp)
-tObjModuleHispi = tEnvLibCom.ObjImport('targets/netx90_module_hispi/netx90_module_hispi.obj', tBinModuleHispi)
 tSrcLibCom = tEnvLibCom.SetBuildPath('targets/netx90_lib_com', 'src', sources_lib_com)
-tLibCom = tEnvLibCom.StaticLibrary('targets/netx90_app_bridge_com.a', tSrcLibCom + tObjApp + tObjModuleHispi)
+tLibCom = tEnvLibCom.StaticLibrary('targets/netx90_app_bridge_com.a', tSrcLibCom + tObjApp)
 
 # This is the controller for the COM side.
 tEnvCom = atEnv.NETX90.Clone()
