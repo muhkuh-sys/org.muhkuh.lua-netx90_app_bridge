@@ -7,7 +7,7 @@
 #include "systime.h"
 
 
-static APP_BRIDGE_DPM_T tDpm __attribute__ ((section (".dpm")));
+static volatile APP_BRIDGE_DPM_T tDpm __attribute__ ((section (".dpm")));
 
 static const unsigned char aucDpmMagic[8] = { APP_BRIDGE_MAGIC_ARRAY };
 
@@ -441,7 +441,10 @@ APP_BRIDGE_RESULT_T app_bridge_init(void)
 			/*
 			 * setup the netX parameter area
 			 */
-			memcpy(tDpm.aucMagic, aucDpmMagic, sizeof(tDpm.aucMagic));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+			memcpy((void*)(tDpm.aucMagic), aucDpmMagic, sizeof(tDpm.aucMagic));
+#pragma GCC diagnostic pop
 			tDpm.ulRequestCount = 0;
 			tDpm.ulResponseCount = 0;
 
@@ -575,7 +578,10 @@ APP_BRIDGE_RESULT_T app_bridge_read_area(unsigned long ulAddress, unsigned long 
 			tResult = check_app_status(tDpm.tRequest.tStatus);
 			if( tResult==APP_BRIDGE_RESULT_Ok )
 			{
-				memcpy(pucData, tDpm.tRequest.uData.tReadArea.aucData, ulLengthInBytes);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+				memcpy(pucData, (void*)(tDpm.tRequest.uData.tReadArea.aucData), ulLengthInBytes);
+#pragma GCC diagnostic pop
 			}
 			break;
 		}
@@ -672,7 +678,10 @@ APP_BRIDGE_RESULT_T app_bridge_write_area(unsigned long ulAddress, unsigned long
 	tDpm.tRequest.tStatus = APP_STATUS_Idle;
 	tDpm.tRequest.uData.tWriteArea.ulAddress = ulAddress;
 	tDpm.tRequest.uData.tWriteArea.ulLengthInBytes = ulLengthInBytes;
-	memcpy(tDpm.tRequest.uData.tWriteArea.aucData, pucData, ulLengthInBytes);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+	memcpy((void*)(tDpm.tRequest.uData.tWriteArea.aucData), pucData, ulLengthInBytes);
+#pragma GCC diagnostic pop
 
 	/* Start the request. */
 	ulRequestId = tDpm.ulRequestCount + 1U;
