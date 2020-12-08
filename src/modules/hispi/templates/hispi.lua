@@ -96,7 +96,7 @@ function AppBridgeModuleHiSpi:_init(tAppBridge, tLog)
   self.ulModuleLoadAddress = 0x000B8000
   self.ulModuleExecAddress = 0x000B8001
   self.ulModuleBufferArea = 0x000BC000
-  
+
   self.HISPI_COMMAND_Initialize = ${HISPI_COMMAND_Initialize}
   self.HISPI_COMMAND_ReadRegister16 = ${HISPI_COMMAND_ReadRegister16}
   self.HISPI_COMMAND_WriteRegister16 = ${HISPI_COMMAND_WriteRegister16}
