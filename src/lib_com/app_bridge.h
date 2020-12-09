@@ -32,5 +32,9 @@ APP_BRIDGE_RESULT_T app_bridge_write_register_unlock(unsigned long ulAddress, un
 APP_BRIDGE_RESULT_T app_bridge_write_area(unsigned long ulAddress, unsigned long ulLengthInBytes, const unsigned char *pucData);
 APP_BRIDGE_RESULT_T app_bridge_call(unsigned long ulAddress, unsigned long ulR0, unsigned long ulR1, unsigned long ulR2, unsigned long ulR3, unsigned long *pulResult);
 
+APP_BRIDGE_RESULT_T app_bridge_module_hispi_initialize(unsigned long ulNumberOfNetiolDevices);
+APP_BRIDGE_RESULT_T app_bridge_module_hispi_readRegister16(unsigned char ucNode, unsigned short usAddress, unsigned short *pusValue);
+APP_BRIDGE_RESULT_T app_bridge_module_hispi_writeRegister16(unsigned char ucNode, unsigned short usAddress, unsigned short usValue);
+
 
 #endif  /* __DPM_H__ */
