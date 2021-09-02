@@ -14,14 +14,10 @@
 	</info>
 	<dependencies>
 		<dependency group="org.muhkuh.tools" module="muhkuh_base_cli" artifact="lua5.4-muhkuh_base_cli" version="2.4"/>
-		<dependency group="com.github.moteus" module="lua-log" artifact="lua-log" version="0.1.6"/>
-		<dependency group="com.github.stevedonovan" module="penlight" artifact="penlight" version="1.7"/>
 		<dependency group="org.luajit" module="bitop" artifact="lua5.4-bitop" version="1.0"/>
 	</dependencies>
 	<dependencies>
 		<dependency group="org.muhkuh.tools" module="muhkuh_base_cli" artifact="lua5.1-muhkuh_base_cli" version="2.4"/>
-		<dependency group="com.github.moteus" module="lua-log" artifact="lua-log" version="0.1.6"/>
-		<dependency group="com.github.stevedonovan" module="penlight" artifact="penlight" version="1.7"/>
 		<dependency group="org.luajit" module="bitop" artifact="lua5.1-bitop" version="1.0"/>
 	</dependencies>
 </jonchki-artifact>
