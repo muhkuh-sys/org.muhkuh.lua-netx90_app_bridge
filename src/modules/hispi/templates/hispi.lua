@@ -84,7 +84,6 @@ local AppBridgeModuleHiSpi = class()
 
 function AppBridgeModuleHiSpi:_init(tAppBridge, tLog)
   self.pl = require'pl.import_into'()
-  self.bit = require 'bit'
 
   self.tAppBridge = tAppBridge
   self.tLog = tLog
@@ -136,7 +135,7 @@ function AppBridgeModuleHiSpi:readRegister16(ucNetIolNode, usAddress)
     error('Failed to read.')
   end
   local ulValue = tAppBridge:read_register(self.ulModuleBufferArea)
-  return self.bit.band(ulValue, 0xffff)
+  return (ulValue & 0xffff)
 end
 
 
