@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="mbs/setup2html.xsl"?>
 
-<muhkuh_buildsystem project="netx90_app_bridge">
+<muhkuh_buildsystem group="org.muhkuh.lua" module="netx90_app_bridge">
 	<project_version>1.2.0</project_version>
 
 	<scons>

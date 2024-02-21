@@ -168,8 +168,8 @@ doc = atEnv.DEFAULT.Asciidoc('targets/doc/netx90_app_bridge.html', 'doc/netx90_a
 #
 # Build an archive.
 #
-strGroup = 'org.muhkuh.lua'
-strModule = 'netx90_app_bridge'
+strGroup = PROJECT_GROUP
+strModule = PROJECT_MODULE
 
 # Split the group by dots.
 aGroup = strGroup.split('.')
