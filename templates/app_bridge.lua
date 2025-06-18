@@ -2,6 +2,24 @@ local class = require 'pl.class'
 local AppBridge = class()
 
 
+AppBridge.__atErrorMessages = {
+  [${APP_BRIDGE_RESULT_Ok}]  = 'OK',
+  [${APP_BRIDGE_RESULT_InvalidDpmAddress}]  = 'Invalid DPM address',
+  [${APP_BRIDGE_RESULT_DpmClocksMaskedOut}]  = 'The DPM clocks can not be enabled as they are masked out.',
+  [${APP_BRIDGE_RESULT_AppClocksMaskedOut}]  = 'The APP CPU can not be enabled as the clock is masked out.',
+  [${APP_BRIDGE_RESULT_AppFirmwareExceedsFirstSector}]  = 'The APP firmware exceeds the first flash sector.',
+  [${APP_BRIDGE_RESULT_AppFirmwareUpdateNeededWhileAppRunning}]  = 'The APP firmware must be updated, but the APP CPU is running.',
+  [${APP_BRIDGE_RESULT_AppFirmwareUpdateFlashFailed}]  = 'Failed to update the APP firmware in INTFLASH2.',
+  [${APP_BRIDGE_RESULT_TransferTimeout}]  = 'Transfer timeout.',
+  [${APP_BRIDGE_RESULT_AppStatusInvalidCommand}]  = 'Invalid command.',
+  [${APP_BRIDGE_RESULT_AppStatusUnalignedAddress}]  = 'Unaligned address.',
+  [${APP_BRIDGE_RESULT_AppStatusLengthTooLarge}] = 'The requested length exceeds the limits of the buffer.',
+  [${APP_BRIDGE_RESULT_AppStatusCallRunning}] = 'A "call" command is running.',
+  [${APP_BRIDGE_RESULT_AppStatusIdle}] = 'Idle.',
+  [${APP_BRIDGE_RESULT_AppStatusUnknown}] = 'Unknown.'
+}
+
+
 function AppBridge:_init(tPlugin)
   self.BRIDGE_COMMAND_Initialize = ${BRIDGE_COMMAND_Initialize}
   self.BRIDGE_COMMAND_Identify = ${BRIDGE_COMMAND_Identify}
@@ -14,6 +32,16 @@ function AppBridge:_init(tPlugin)
 
   self.__tPlugin = tPlugin
   self.__aAttr = nil
+end
+
+
+
+function AppBridge:__get_error_message(ulCode)
+  local strErrorMsg = self.__atErrorMessages[ulCode]
+  if strErrorMsg==nil then
+    strErrorMsg = 'Unknown errorcode: ' .. tostring(ulCode)
+  end
+  return strErrorMsg
 end
 
 
@@ -40,7 +68,7 @@ function AppBridge:initialize()
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print('Failed to initialize the bridge DPM.')
+      print('Failed to initialize the bridge DPM: ' .. self:__get_error_message(ulValue))
     else
       self.__aAttr = aAttr
       tResult = true
@@ -70,7 +98,7 @@ function AppBridge:identify()
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print('Failed to identify the bridge DPM.')
+      print('Failed to identify the bridge DPM: ' .. self:__get_error_message(ulValue))
     else
       tResult = true
     end
@@ -101,7 +129,13 @@ function AppBridge:read_register(ulAddress)
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print(string.format('Failed to read the register 0x%08x.', ulAddress))
+      print(
+        string.format(
+          'Failed to read the register 0x%08x: %s',
+          ulAddress,
+          self:__get_error_message(ulValue)
+        )
+      )
     else
       tResult = aParameter[3]
     end
@@ -132,7 +166,14 @@ function AppBridge:read_area(ulAddress, ulSizeInBytes)
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print(string.format('Failed to read the area 0x%08x-0x%08x .', ulAddress, ulAddress+ulSizeInBytes))
+      print(
+        string.format(
+          'Failed to read the area 0x%08x-0x%08x : %s',
+          ulAddress,
+          ulAddress+ulSizeInBytes,
+          self:__get_error_message(ulValue)
+        )
+      )
     else
       tResult = tPlugin:read_image(aAttr.ulParameterStartAddress+0x18, ulSizeInBytes, tester.callback_progress, ulSizeInBytes)
     end
@@ -163,7 +204,13 @@ function AppBridge:write_register(ulAddress, ulData)
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print(string.format('Failed to write the register 0x%08x.', ulAddress))
+      print(
+        string.format(
+          'Failed to write the register 0x%08x: %s',
+          ulAddress,
+          self:__get_error_message(ulValue)
+        )
+      )
     else
       tResult = true
     end
@@ -194,7 +241,13 @@ function AppBridge:write_register_unlock(ulAddress, ulData)
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print(string.format('Failed to write_unlock the register 0x%08x.', ulAddress))
+      print(
+        string.format(
+          'Failed to write_unlock the register 0x%08x: %s',
+          ulAddress,
+          self:__get_error_message(ulValue)
+        )
+      )
     else
       tResult = true
     end
@@ -227,7 +280,14 @@ function AppBridge:write_area(ulAddress, strData)
     tPlugin:write_image(aAttr.ulParameterStartAddress+0x18, strData, tester.callback_progress, sizData)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print(string.format('Failed to write the area 0x%08x-0x%08x .', ulAddress, ulAddress+sizData))
+      print(
+        string.format(
+          'Failed to write the area 0x%08x-0x%08x : %s',
+          ulAddress,
+          ulAddress+sizData,
+          self:__get_error_message(ulValue)
+        )
+      )
     else
       tResult = true
     end
@@ -266,7 +326,13 @@ function AppBridge:call(ulAddress, ulR0, ulR1, ulR2, ulR3)
     tester:mbin_set_parameter(tPlugin, aAttr, aParameter)
     local ulValue = tester:mbin_execute(tPlugin, aAttr, aParameter)
     if ulValue~=0 then
-      print(string.format('Failed to read the register 0x%08x.', ulAddress))
+      print(
+        string.format(
+          'Failed to read the register 0x%08x : %s',
+          ulAddress,
+          self:__get_error_message(ulValue)
+        )
+      )
     else
       tResult = aParameter[7]
     end

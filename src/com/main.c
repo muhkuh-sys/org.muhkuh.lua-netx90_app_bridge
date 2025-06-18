@@ -12,9 +12,8 @@
 /*-------------------------------------------------------------------------*/
 
 
-TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
+unsigned long test(BRIDGE_PARAMETER_T *ptParameter)
 {
-	TEST_RESULT_T tResult;
 	BRIDGE_COMMAND_T tCommand;
 	APP_BRIDGE_RESULT_T tAppBridgeResult;
 	unsigned long ulValue;
@@ -25,11 +24,11 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 	if( ptParameter==NULL )
 	{
 		uprintf("App bridge " VERSION_ALL "\n");
-		tResult = TEST_RESULT_OK;
+		tAppBridgeResult = APP_BRIDGE_RESULT_Ok;
 	}
 	else
 	{
-		tResult = TEST_RESULT_ERROR;
+		tAppBridgeResult = APP_BRIDGE_RESULT_AppStatusInvalidCommand;
 
 		tCommand = ptParameter->tCommand;
 		switch( tCommand )
@@ -41,7 +40,6 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 			if( tAppBridgeResult==APP_BRIDGE_RESULT_Ok )
 			{
 				uprintf("Bridge init OK\n");
-				tResult = TEST_RESULT_OK;
 			}
 			break;
 
@@ -59,7 +57,6 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 			{
 				ptParameter->uData.tReadRegister.ulValue = ulValue;
 				uprintf("read 0x%08x\n", ulValue);
-				tResult = TEST_RESULT_OK;
 			}
 			break;
 
@@ -67,40 +64,24 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 			uprintf("ReadArea\n");
 
 			tAppBridgeResult = app_bridge_read_area(ptParameter->uData.tReadArea.ulAddress, ptParameter->uData.tReadArea.ulLengthInBytes, ptParameter->uData.tReadArea.aucData);
-			if( tAppBridgeResult==APP_BRIDGE_RESULT_Ok )
-			{
-				tResult = TEST_RESULT_OK;
-			}
 			break;
 
 		case BRIDGE_COMMAND_WriteRegister:
 			uprintf("WriteRegister\n");
 
 			tAppBridgeResult = app_bridge_write_register(ptParameter->uData.tWriteRegister.ulRegister, ptParameter->uData.tWriteRegister.ulValue);
-			if( tAppBridgeResult==APP_BRIDGE_RESULT_Ok )
-			{
-				tResult = TEST_RESULT_OK;
-			}
 			break;
 
 		case BRIDGE_COMMAND_WriteRegisterUnlock:
 			uprintf("WriteRegisterUnlock\n");
 
 			tAppBridgeResult = app_bridge_write_register_unlock(ptParameter->uData.tWriteRegisterUnlock.ulRegister, ptParameter->uData.tWriteRegisterUnlock.ulValue);
-			if( tAppBridgeResult==APP_BRIDGE_RESULT_Ok )
-			{
-				tResult = TEST_RESULT_OK;
-			}
 			break;
 
 		case BRIDGE_COMMAND_WriteArea:
 			uprintf("WriteArea\n");
 
 			tAppBridgeResult = app_bridge_write_area(ptParameter->uData.tWriteArea.ulAddress, ptParameter->uData.tWriteArea.ulLengthInBytes, ptParameter->uData.tWriteArea.aucData);
-			if( tAppBridgeResult==APP_BRIDGE_RESULT_Ok )
-			{
-				tResult = TEST_RESULT_OK;
-			}
 			break;
 
 		case BRIDGE_COMMAND_Call:
@@ -110,11 +91,10 @@ TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter)
 			if( tAppBridgeResult==APP_BRIDGE_RESULT_Ok )
 			{
 				ptParameter->uData.tCall.ulResult = ulValue;
-				tResult = TEST_RESULT_OK;
 			}
 			break;
 		}
 	}
 
-	return tResult;
+	return tAppBridgeResult;
 }

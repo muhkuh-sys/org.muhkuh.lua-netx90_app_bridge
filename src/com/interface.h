@@ -89,14 +89,7 @@ typedef struct BRIDGE_PARAMETER_STRUCT
 } BRIDGE_PARAMETER_T;
 
 
-typedef enum TEST_RESULT_ENUM
-{
-	TEST_RESULT_OK = 0,
-	TEST_RESULT_ERROR = 1
-} TEST_RESULT_T;
-
-
-TEST_RESULT_T test(BRIDGE_PARAMETER_T *ptParameter);
+unsigned long test(BRIDGE_PARAMETER_T *ptParameter);
 
 
 #endif  /* __INTERFACE_H__ */
