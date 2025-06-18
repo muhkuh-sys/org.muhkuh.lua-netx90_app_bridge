@@ -275,6 +275,8 @@ static APP_BRIDGE_RESULT_T app_start(void)
 		}
 		else
 		{
+			/* Select the main flash array. */
+			internal_flash_select_read_mode_and_clear_caches();
 			iCmp = memcmp(pucFlashData, _binary_netx90_app_bridge_img_start, sizFlashImage);
 			if( iCmp!=0 )
 			{
