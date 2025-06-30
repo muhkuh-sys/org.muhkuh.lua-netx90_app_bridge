@@ -6,6 +6,7 @@
 #include "hispi.h"
 #include "netx_io_areas.h"
 #include "systime.h"
+#include "version.h"
 
 
 static volatile APP_BRIDGE_DPM_T tDpm __attribute__ ((section (".dpm")));
@@ -470,6 +471,17 @@ APP_BRIDGE_RESULT_T app_bridge_init(void)
 	}
 
 	return tResult;
+}
+
+
+
+void app_bridge_get_version(APP_BRIDGE_VERSION_T *ptAppBridgeVersion)
+{
+	ptAppBridgeVersion->ulVersionMajor = VERSION_MAJOR;
+	ptAppBridgeVersion->ulVersionMinor = VERSION_MINOR;
+	ptAppBridgeVersion->ulVersionMicro = VERSION_MICRO;
+	memset(ptAppBridgeVersion->acVersionVcs, sizeof(ptAppBridgeVersion->acVersionVcs), 0);
+	strcpy(ptAppBridgeVersion->acVersionVcs, VERSION_VCS);
 }
 
 

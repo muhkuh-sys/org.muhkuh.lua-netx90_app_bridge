@@ -22,8 +22,18 @@ typedef enum APP_BRIDGE_RESULT_ENUM
 } APP_BRIDGE_RESULT_T;
 
 
+typedef struct APP_BRIDGE_VERSION_STRUCT
+{
+	unsigned long ulVersionMajor;
+	unsigned long ulVersionMinor;
+	unsigned long ulVersionMicro;
+	char          acVersionVcs[16];
+} APP_BRIDGE_VERSION_T;
+
 
 APP_BRIDGE_RESULT_T app_bridge_init(void);
+
+void app_bridge_get_version(APP_BRIDGE_VERSION_T *ptAppBridgeVersion);
 
 APP_BRIDGE_RESULT_T app_bridge_read_register(unsigned long ulAddress, unsigned long *pulValue);
 APP_BRIDGE_RESULT_T app_bridge_read_area(unsigned long ulAddress, unsigned long ulLengthInBytes, unsigned char *pucData);
